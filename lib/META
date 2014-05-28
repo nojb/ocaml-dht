@@ -1,8 +1,8 @@
 # OASIS_START
-# DO NOT EDIT (digest: 266432aac979f5d0d5209391542c2ba2)
+# DO NOT EDIT (digest: 7ca062132a3d56d89eed704811e6da56)
 version = "0.1.0"
 description = "BitTorrent DHT library for Lwt"
-requires = "lwt lwt.unix cryptokit zarith qcheck bitstring bitstring.syntax"
+requires = "lwt lwt.unix cryptokit zarith bitstring bitstring.syntax"
 archive(byte) = "dht.cma"
 archive(byte, plugin) = "dht.cma"
 archive(native) = "dht.cmxa"

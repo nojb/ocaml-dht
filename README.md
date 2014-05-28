@@ -30,7 +30,7 @@ Look in `DHT.mli`, `Kademlia.mli`, and `KRPC.mli`.
 
 First, one needs to bootstrap using `DHT.auto_bootstrap`. Then one can query for peers using
 `DHT.query_peers`.  To see how it works, get a nice info hash
-you are interested in (e.g., 4D753474429D817B80FF9E0C441CA660EC5D2450 for Ubuntu 14.04) and execute:
+you are interested in (e.g., `4D753474429D817B80FF9E0C441CA660EC5D2450` for Ubuntu 14.04) and execute:
 
 ```sh
 $ find_ih 4D753474429D817B80FF9E0C441CA660EC5D2450

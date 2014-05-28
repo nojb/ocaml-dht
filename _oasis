@@ -13,7 +13,7 @@ Library dht
   Install: true
   FindlibName: dht
   Modules: Bcode, SHA1, KRPC, Addr, UDP, DHT, Kademlia, Log, Util
-  BuildDepends: lwt, lwt.unix, cryptokit, zarith, qcheck, bitstring, bitstring.syntax
+  BuildDepends: lwt, lwt.unix, cryptokit, zarith, bitstring, bitstring.syntax
 
 Executable find_ih
   Path: lib_test
