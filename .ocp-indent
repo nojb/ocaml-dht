@@ -1,0 +1,4 @@
+align_ops=false
+strict_with=auto
+syntax=bitstring
+syntax=lwt

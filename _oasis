@@ -1,0 +1,25 @@
+OASISFormat: 0.4
+Name: bt
+Version: 0.1.0
+Synopsis: BitTorrent DHT library for Lwt
+Authors: Nicolas Ojeda Bar <n.oje.bar@gmail.com>
+License: MIT
+Plugins: META (0.4), DevFiles (0.4)
+BuildTools: ocamlbuild
+
+Library dht
+  Path: lib
+  Pack: false
+  Install: true
+  FindlibName: dht
+  Modules: Bcode, SHA1, KRPC, Addr, UDP, DHT, Kademlia, Log, Util
+  BuildDepends: lwt, lwt.unix, cryptokit, zarith, qcheck, bitstring, bitstring.syntax
+
+Executable find_ih
+  Path: lib_test
+  MainIs: find_ih.ml
+  Build$: true
+  Custom: true
+  CompiledObject: best
+  Install: false
+  BuildDepends: dht
