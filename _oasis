@@ -2,8 +2,8 @@ OASISFormat: 0.4
 Name: bt
 Version: 0.1.3
 Synopsis: BitTorrent DHT library for Lwt
-Authors: Nicolas Ojeda Bar <n.oje.bar@gmail.com>
-License: GPL
+Authors: ygrek <ygrek@autistici.org>, Nicolas Ojeda Bar <n.oje.bar@gmail.com>
+License: MIT
 Plugins: META (0.4), DevFiles (0.4)
 BuildTools: ocamlbuild
 
