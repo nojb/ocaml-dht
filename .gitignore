@@ -9,3 +9,4 @@
 *.so
 find_ih
 find_ih.opt
+doc/*.html

@@ -2,6 +2,7 @@ OCAMLFIND = ocamlfind
 LIB_DIR = lib/
 DHT_DIR = dht/
 LIBTEST_DIR = lib_test/
+DOC_DIR = doc/
 STDLIB_DIR = `$(OCAMLFIND) printconf stdlib`
 CFLAGS = -Wall
 OCAMLFLAGS = -safe-string -g -bin-annot
@@ -38,8 +39,23 @@ find_ih: $(LIBTEST_DIR)find_ih
 pull_jech_dht:
 	git subtree pull --prefix dht https://github.com/jech/dht master --squash
 
+doc: $(LIB_DIR)dht.mli
+	$(OCAMLFIND) ocamldoc -d $(DOC_DIR) -html -colorize-code -css-style style.css $^
+
+gh-pages: doc
+	git clone `git config --get remote.origin.url` .gh-pages --reference .
+	git -C .gh-pages checkout --orphan gh-pages
+	git -C .gh-pages reset
+	git -C .gh-pages clean -dxf
+	cp $(DOC_DIR)* .gh-pages/
+	git -C .gh-pages add .
+	git -C .gh-pages commit -m "Update Pages"
+	git -C .gh-pages push origin gh-pages -f
+	rm -rf .gh-pages
+
 clean:
 	rm -f $(LIB_DIR)*.[oa] $(LIB_DIR)*.cm* $(LIB_DIR)*.so $(DHT_DIR)*.o
 	rm -f $(LIBTEST_DIR)find_ih.cm* $(LIBTEST_DIR)find_ih.o*
+	rm -f $(DOC_DIR)*.html
 
-.PHONY: clean pull_jech_dht
+.PHONY: clean pull_jech_dht doc
