@@ -49,8 +49,22 @@ let search ~id ?(port = 0) ?(af = Unix.PF_INET) callback =
   if String.length id <> 20 then invalid_arg "Dht.search";
   dht_search id port af callback
 
+let dht_hash s =
+  Digest.string s
+
 let () =
-  Callback.register "dht_callback" dht_callback
+  Random.self_init ()
+
+let dht_random_bytes bytes =
+  for i = 0 to Bigarray.Array1.dim bytes - 1 do
+    Bigarray.Array1.set bytes i (char_of_int (Random.int 0xFF))
+  done
+
+let () =
+  Callback.register "dht_callback" dht_callback;
+  (* Callback.register "dht_blacklisted" dht_blacklisted; *)
+  Callback.register "dht_hash" dht_hash;
+  Callback.register "dht_random_bytes" dht_random_bytes
 
 external get_nodes : int -> int -> Unix.sockaddr list = "caml_dht_get_nodes"
 
