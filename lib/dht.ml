@@ -27,18 +27,15 @@ type event =
   | EVENT_SEARCH_DONE
 
 external dht_init : Unix.file_descr -> Unix.file_descr -> string -> unit = "caml_dht_init" "noalloc"
+external dht_insert_node : string -> Unix.sockaddr -> unit = "caml_dht_insert_node" "noalloc"
 external dht_periodic : (bytes * int * Unix.sockaddr) option -> (event -> string -> unit) -> float = "caml_dht_periodic"
 
 let init s s6 ~id =
   if String.length id <> 20 then invalid_arg "Dht.init";
   dht_init s s6 id
 
-type dht_event =
-  | DHT_EVENT_NONE
-  | DHT_EVENT_VALUES
-  | DHT_EVENT_VALUES6
-  | DHT_SEARCH_DONE
-  | DHT_SEARCH_DONE6
+let insert_node id sa =
+  dht_insert_node id sa
 
 let dht_callback ev info_hash clos =
   clos ev info_hash

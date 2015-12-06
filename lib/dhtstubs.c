@@ -98,6 +98,18 @@ caml_dht_init(value s, value s6, value id)
 }
 
 CAMLprim value
+caml_dht_insert_node(value id, value addr)
+{
+  union sock_addr_union sa;
+  socklen_param_type salen;
+
+  get_sockaddr(addr, &sa, &salen);
+  dht_insert_node((unsigned char *) String_val(id), &sa.s_gen, salen);
+
+  return Val_unit;
+}
+
+CAMLprim value
 caml_dht_periodic(value pkt_opt, value closure)
 {
   CAMLparam2(pkt_opt, closure);
