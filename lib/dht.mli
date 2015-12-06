@@ -19,4 +19,9 @@
    IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
    CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. *)
 
+type event =
+  | EVENT_VALUES of Unix.sockaddr list
+  | EVENT_SEARCH_DONE
+
 val init : Unix.file_descr -> Unix.file_descr -> id:string -> unit
+val periodic : (bytes * int * Unix.sockaddr) option -> (event -> string -> unit) -> float
