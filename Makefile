@@ -31,6 +31,12 @@ $(LIBTEST_DIR)find_ih.opt: $(LIBTEST_DIR)find_ih.ml $(LIB_DIR)dht.cmxa
 lib: $(LIB_DIR)dhtstubs.o $(DHT_DIR)dht.o $(LIB_DIR)dht.cmo $(LIB_DIR)dht.cmx
 	ocamlmklib -custom -o $(LIB_DIR)dht $^
 
+install: lib $(LIB_DIR)META
+	$(OCAMLFIND) install dht $(LIB_DIR)META $(LIB_DIR)dht.cma $(LIB_DIR)dht.cmxa $(LIB_DIR)libdht.a $(LIB_DIR)dht.cmi $(LIB_DIR)dht.cmti $(LIB_DIR)dht.cmt
+
+uninstall:
+	$(OCAMLFIND) remove dht
+
 test_lib: $(LIBTEST_DIR)find_ih $(LIBTEST_DIR)find_ih.opt
 
 find_ih: $(LIBTEST_DIR)find_ih
@@ -58,4 +64,4 @@ clean:
 	rm -f $(LIBTEST_DIR)find_ih.cm* $(LIBTEST_DIR)find_ih.o*
 	rm -f $(DOC_DIR)*.html
 
-.PHONY: clean pull_jech_dht doc
+.PHONY: clean pull_jech_dht doc uninstall

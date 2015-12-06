@@ -7,7 +7,6 @@ lib: [
   "lib/dht.cma" {"dht.cma"}
   "lib/dht.cmxa" {"dht.cmxa"}
   "lib/libdht.a" {"libdht.a"}
-  "lib/dht.a" {"dht.a"}
 ]
 doc: [
   "README.md" {"README.md"}
