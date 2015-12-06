@@ -61,7 +61,7 @@ gh-pages: doc
 
 clean:
 	rm -f $(LIB_DIR)*.[oa] $(LIB_DIR)*.cm* $(LIB_DIR)*.so $(DHT_DIR)*.o
-	rm -f $(LIBTEST_DIR)find_ih.cm* $(LIBTEST_DIR)find_ih $(LIBTEST_DIR)find_ih.opt
+	rm -f $(LIBTEST_DIR)find_ih.cm* $(LIBTEST_DIR)find_ih $(LIBTEST_DIR)find_ih.o*
 	rm -f $(DOC_DIR)*.html
 
 .PHONY: clean pull_jech_dht doc uninstall

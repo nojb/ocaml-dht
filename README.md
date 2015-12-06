@@ -25,6 +25,10 @@ See
 [find_ih.ml](https://github.com/nojb/ocaml-dht/blob/master/lib_test/find_ih.ml)
 for a very simple example of how to use the library.
 
+### LICENSE
+
+MIT.
+
 ## Contact
 
 Nicolas Ojeda Bar at n.oje.bar@gmail.com.
