@@ -14,6 +14,9 @@ $(LIB_DIR)libdht.a: $(LIB_DIR)dhtstubs.o $(LIB_DIR)socketaddr.o $(LIB_DIR)unixsu
 $(LIB_DIR)dht.cmo: $(LIB_DIR)dht.mli $(LIB_DIR)dht.ml
 	$(OCAMLFIND) ocamlc -I $(LIB_DIR) -o $@ -c $^
 
+$(LIB_DIR)dht.cma: $(LIB_DIR)dht.cmo $(LIB_DIR)/libdht.a
+	$(OCAMLFIND) ocamlc -a -I $(LIB_DIR) -o $@ $< -cclib -ldht
+
 pull_jech_dht:
 	git subtree pull --prefix dht https://github.com/jech/dht master --squash
 
