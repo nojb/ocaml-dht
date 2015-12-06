@@ -1,1 +1,2 @@
-DHT library and test client for Lwt
+OCaml bindings for Juliusz Chroboczek's dht C library
+found at <https://www.github.com/jech/dht>
