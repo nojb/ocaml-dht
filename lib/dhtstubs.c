@@ -151,3 +151,34 @@ caml_dht_periodic(value pkt_opt, value closure)
 
   CAMLreturn(caml_copy_double((double)tosleep));
 }
+
+CAMLprim value
+caml_dht_search(value id, value port, value dom, value closure)
+{
+  CAMLparam2(id, closure);
+  int res;
+  int af;
+
+  switch(Int_val(dom)) {
+  case 0:
+    af = AF_UNIX;
+    break;
+  case 1:
+    af = AF_INET;
+    break;
+  case 2:
+    af = AF_INET6;
+    break;
+  default:
+    caml_failwith("dht_search");
+    break;
+  }
+
+  res = dht_search((unsigned char *) String_val(id), Int_val(port), af, &caml_dht_callback, (void *)closure);
+
+  if (res < 0) {
+    caml_failwith("dht_search");
+  }
+
+  CAMLreturn(Val_unit);
+}

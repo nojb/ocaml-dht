@@ -19,9 +19,6 @@
    IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
    CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. *)
 
-type bigstring =
-  Bigarray.Array1.t
-
 type event =
   | EVENT_VALUES of Unix.sockaddr list
   | EVENT_SEARCH_DONE
@@ -29,13 +26,15 @@ type event =
 external dht_init : Unix.file_descr -> Unix.file_descr -> string -> unit = "caml_dht_init" "noalloc"
 external dht_insert_node : string -> Unix.sockaddr -> unit = "caml_dht_insert_node" "noalloc"
 external dht_ping_node : Unix.sockaddr -> unit = "caml_dht_ping_node" "noalloc"
-external dht_periodic : (bytes * int * Unix.sockaddr) option -> (event -> string -> unit) -> float = "caml_dht_periodic"
+external dht_periodic : (bytes * int * Unix.sockaddr) option -> (event -> id:string -> unit) -> float = "caml_dht_periodic"
+external dht_search : string -> int -> Unix.socket_domain -> (event -> id:string -> unit) -> unit =
+  "caml_dht_search"
 
 let init s s6 ~id =
   if String.length id <> 20 then invalid_arg "Dht.init";
   dht_init s s6 id
 
-let insert_node id sa =
+let insert_node ~id sa =
   dht_insert_node id sa
 
 let ping_node sa =
@@ -46,6 +45,9 @@ let dht_callback ev info_hash clos =
 
 let periodic pkt cb =
   dht_periodic pkt cb
+
+let search ~id ~port af callback =
+  dht_search id port af callback
 
 let () =
   Callback.register "dht_callback" dht_callback

@@ -24,6 +24,7 @@ type event =
   | EVENT_SEARCH_DONE
 
 val init : Unix.file_descr -> Unix.file_descr -> id:string -> unit
-val insert_node : string -> Unix.sockaddr -> unit
+val insert_node : id:string -> Unix.sockaddr -> unit
 val ping_node : Unix.sockaddr -> unit
-val periodic : (bytes * int * Unix.sockaddr) option -> (event -> string -> unit) -> float
+val periodic : (bytes * int * Unix.sockaddr) option -> (event -> id:string -> unit) -> float
+val search : id:string -> port:int -> Unix.socket_domain -> (event -> id:string -> unit) -> unit
