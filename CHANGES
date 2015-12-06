@@ -1,0 +1,13 @@
+0.2.0 (6 Dec 2015, Paris)
+-------------------------
+
+  * Remove pure OCaml implementation and switch to
+    bindings for Juliusz Chroboczek's dht C library
+    found at <https://github.com/jech/dht>.
+  * Remove OASIS, switch to Makefile/ocamlfind
+  * Rewrite lib_test/find_ih
+
+0.1.0
+-----
+
+  * Initial release
