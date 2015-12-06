@@ -19,12 +19,13 @@
    IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
    CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. *)
 
-(** This interface implement the variant of the Kademlia Distributed Hash Table
-    (DHT) used in the Bittorrent network (``mainline'' variant). *)
+(** This interface implement bindings to Juliusz Chroboczek's
+    {{:https://github.com/jech/dht}dht library.}  That library implements the
+    variant of the Kademlia Distributed Hash Table (DHT) used in the Bittorrent
+    network ({i mainline} variant).
 
-type event =
-  | EVENT_VALUES of Unix.sockaddr list
-  | EVENT_SEARCH_DONE
+    The following documentation is lightly adapted from the one coming with that
+    library. *)
 
 val init : Unix.file_descr -> Unix.file_descr -> id:string -> unit
 (** This must be called before using the library.  You pass it a bound IPv4
@@ -63,15 +64,20 @@ val ping_node : Unix.sockaddr -> unit
     you believe that a DHT node may be living, and a query will be sent.  If a node
     replies, and if there is space in the routing table, it will be inserted. *)
 
+type event =
+  | EVENT_VALUES of Unix.sockaddr list
+  | EVENT_SEARCH_DONE
+
 val periodic : (bytes * int * Unix.sockaddr) option -> (event -> id:string -> unit) -> float
 (** This function should be called by your main loop periodically, and also
     whenever data is available on the socket.  The time after which [periodic]
-    should be called if no data is available is returned in the parameter tosleep.
-    (You do not need to be particularly accurate; actually, it is a good idea to be
-    late by a random value.)
+    should be called if no data is available is returned.  (You do not need to
+    be particularly accurate; actually, it is a good idea to be late by a random
+    value.)
 
-    The parameters buf, buflen, from and fromlen optionally carry a received
-    message.  If buflen is 0, then no message was received.
+    The parameters optionally carry a received message [(pkt, len, sa)] where
+    the packet is [Bytes.sub pkt 0 len] and [sa] is the origin address, as
+    obtained from [Unix.recvfrom] for examples.
 
     [periodic] also takes a callback, which will be called whenever something
     interesting happens (see below). *)
