@@ -94,6 +94,7 @@ end = struct
   let bootstrap_nodes =
     [
       "dht.transmissionbt.com", 6881;
+      "router.utorrent.com", 6881;
     ]
 
   let rec init () =
@@ -128,10 +129,11 @@ end = struct
     Lwt.async (fun () ->
         Lwt_list.iter_p (fun (name, port) ->
             Lwt_unix.gethostbyname name >>= fun he ->
-            if Array.length he.Unix.h_addr_list > 0 then
+            if Array.length he.Unix.h_addr_list > 0 then begin
+              Printf.eprintf "Bootstrap: pinging %s...\n%!" name;
               Lwt.wrap1 Dht.ping_node (Unix.ADDR_INET (he.Unix.h_addr_list.(0), port))
-            else begin
-              Printf.ksprintf prerr_endline "Bootstrap: node %s not found" name;
+            end else begin
+              Printf.eprintf "Bootstrap: node %s not found\n%!" name;
               Lwt.return_unit
             end
           ) bootstrap_nodes >>= loop
