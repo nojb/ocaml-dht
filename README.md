@@ -1,10 +1,10 @@
 # ocaml-dht
 
-OCaml bindings for https://github.com/jech/dht, a tiny and efficient C library
-used to access the BitTorrent DHT.  This project used to contain a pure OCaml
-implementation of the DHT extracted from MLdonkey, but it was too unstable for
-heavy-duty use so it has been replaced by these bindings.  The pure OCaml
-implementation might return if I can fix it.
+OCaml bindings for [jech/dht](https://github.com/jech/dht), a tiny and efficient
+C library used to access the BitTorrent DHT.  This project used to contain a
+pure OCaml implementation of the DHT extracted from MLdonkey, but it was too
+unstable for heavy-duty use so it has been replaced by these bindings.  The pure
+OCaml implementation might return if I can fix it.
 
 ## Installation
 
