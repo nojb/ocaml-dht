@@ -1,43 +1,30 @@
 # ocaml-dht
 
-OCaml-DHT is a small BitTorrent DHT implementation.  It is shamelessly based in the one found in [MLdonkey](http://mldonkey.sourceforge.net), but adapated to work with [Lwt](http://ocsigen.org/lwt/).
-
-This is a preliminary release.
+OCaml bindings for https://github.com/jech/dht, a tiny and efficient C library
+used to access the BitTorrent DHT.  This project used to contain a pure OCaml
+implementation of the DHT extracted from MLdonkey, but it was too unstable for
+heavy-duty use so it has been replaced by these bindings.  The pure OCaml
+implementation might return if I can fix it.
 
 ## Installation
 
-The easiest way is to use [OPAM](http://opam.ocaml.org).
-```sh
-opam install dht
-```
-
-Alternatively, clone from git and install manually:
-```sh
-cd ~/tmp
-git clone https://github.com/nojb/ocaml-dht
-cd ocaml-dht
+```bash
 make
 make install
 ```
 
-Either way the end-result will be a OCaml library (findlib name: `dht`) and a executable `find_ih`.
+More docs to come once this is more stable.
 
 ### Documentation
 
-Look in `DHT.mli`, `Kademlia.mli`, and `KRPC.mli`.
+See [online](https://nojb.github.io/ocaml-dht).
 
 ### Usage
 
-First, one needs to bootstrap using `DHT.auto_bootstrap`. Then one can query for peers using
-`DHT.query_peers`.  To see how it works, get a nice info hash
-you are interested in (e.g., `4D753474429D817B80FF9E0C441CA660EC5D2450` for Ubuntu 14.04) and execute:
+See
+[find_ih.ml](https://github.com/nojb/ocaml-dht/blob/master/lib_test/find_ih.ml)
+for a very simple example of how to use the library.
 
-```sh
-$ find_ih 4D753474429D817B80FF9E0C441CA660EC5D2450
-```
+## Contact
 
-You will see a lot of debug output which explains (if you know what it means) what is going on.
-
-## Comments
-
-Comments, bug reports and feature requests are very welcome: n.oje.bar@gmail.com.
+Nicolas Ojeda Bar at n.oje.bar@gmail.com.
