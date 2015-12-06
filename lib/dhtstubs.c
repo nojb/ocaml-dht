@@ -95,7 +95,13 @@ caml_dht_callback(void *closure, int event,
 CAMLprim value
 caml_dht_init(value s, value s6, value id)
 {
-  dht_init(Int_val(s), Int_val(s6), (unsigned char *) String_val(id), NULL);
+  int res;
+
+  res = dht_init(Int_val(s), Int_val(s6), (unsigned char *) String_val(id), NULL);
+
+  if (res < 0) {
+    caml_failwith("dht_init");
+  }
 
   return Val_unit;
 }
@@ -117,9 +123,14 @@ caml_dht_ping_node(value addr)
 {
   union sock_addr_union sa;
   socklen_param_type salen;
+  int res;
 
   get_sockaddr(addr, &sa, &salen);
-  dht_ping_node(&sa.s_gen, salen);
+  res = dht_ping_node(&sa.s_gen, salen);
+
+  if (res < 0) {
+    caml_failwith("dht_ping_node");
+  }
 
   return Val_unit;
 }

@@ -38,21 +38,22 @@ let main info_hash =
   let s = Lwt_unix.socket Unix.PF_INET Unix.SOCK_DGRAM 0 in
   let s6 = Lwt_unix.socket Unix.PF_INET6 Unix.SOCK_DGRAM 0 in
   Lwt_unix.bind s (Unix.ADDR_INET (Unix.inet_addr_any, 4567));
-  Lwt_unix.bind s6 (Unix.ADDR_INET (Unix.inet_addr_any, 4568));
+  Lwt_unix.bind s6 (Unix.ADDR_INET (Unix.inet6_addr_any, 4568));
   Dht.init (Lwt_unix.unix_file_descr s) (Lwt_unix.unix_file_descr s6) ~id;
   let buf = Bytes.create 4096 in
   let finished = ref false in
   let cb ev ~id =
+    Printf.eprintf "cb\n%!";
     match ev with
     | Dht.EVENT_VALUES addrs ->
         List.iter (fun addr ->
             Printf.printf "Found address: %s\n%!" (string_of_sockaddr addr)
           ) addrs
     | Dht.EVENT_SEARCH_DONE ->
-        Printf.printf "Search done.\n%!";
-        finished := true
+        Printf.printf "Search done.\n%!"
   in
   let rec loop sleep =
+    Printf.eprintf "loop: %f\n%!" sleep;
     if not !finished then
       Lwt.pick
         [
@@ -62,16 +63,20 @@ let main info_hash =
         ]
       >>= function
       | `Timeout ->
+          Printf.eprintf "Timeout!\n%!";
           Lwt.wrap2 Dht.periodic None cb >>=
           loop
       | `Read fd ->
+          Printf.eprintf "Read\n%!";
           Lwt_unix.recvfrom fd buf 0 (Bytes.length buf) [] >>= fun (len, sa) ->
           Lwt.wrap2 Dht.periodic (Some (buf, len, sa)) cb >>=
           loop
     else
       Lwt.return_unit
   in
-  Dht.search ~id ~port:4567 Unix.PF_INET cb;
+  Lwt_unix.gethostbyname "dht.transmissionbt.com" >>= fun he ->
+  Dht.ping_node (Unix.ADDR_INET (he.Unix.h_addr_list.(0), 6881));
+  Dht.search ~id:info_hash ~port:4567 Unix.PF_INET cb;
   loop 0.0
 
 let invalid_arg fmt =
