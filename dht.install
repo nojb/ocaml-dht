@@ -1,0 +1,14 @@
+lib: [
+  "lib/META" {"META"}
+  "lib/dht.mli" {"dht.mli"}
+  "lib/dht.cmi" {"dht.cmi"}
+  "lib/dht.cmti" {"dht.cmti"}
+  "lib/dht.cmt" {"dht.cmt"}
+  "lib/dht.cma" {"dht.cma"}
+  "lib/dht.cmxa" {"dht.cmxa"}
+  "lib/libdht.a" {"libdht.a"}
+  "lib/dht.a" {"dht.a"}
+]
+doc: [
+  "README.md" {"README.md"}
+]

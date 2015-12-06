@@ -4,7 +4,7 @@ DHT_DIR = dht/
 LIBTEST_DIR = lib_test/
 STDLIB_DIR = `$(OCAMLFIND) printconf stdlib`
 CFLAGS = -Wall
-OCAMLFLAGS = -safe-string -g
+OCAMLFLAGS = -safe-string -g -bin-annot
 CC = cc
 
 all: lib test_lib

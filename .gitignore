@@ -5,6 +5,7 @@
 *.cma
 *.cmxa
 *.cmi
+*.cmt*
 *.so
 find_ih
 find_ih.opt
