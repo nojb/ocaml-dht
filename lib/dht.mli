@@ -28,8 +28,8 @@ type event =
 
 val init : Unix.file_descr -> Unix.file_descr -> id:string -> unit
 (** This must be called before using the library.  You pass it a bound IPv4
-    datagram socket, a bound IPv6 datagram socket, and your node id, a 20-octet
-    array that should be globally unique.
+    datagram socket, a bound IPv6 datagram socket, and your node [id], a
+    20-octet array that should be globally unique.
 
     If you're on a multi-homed host, you should bind the sockets to one of your
     addresses.
@@ -50,12 +50,13 @@ val insert_node : id:string -> Unix.sockaddr -> unit
     massive amounts of incorrect information into your routing table is
     certainly not a good idea.
 
-    An additionaly difficulty with dht_insert_node is that, for various reasons, a
-    Kademlia routing table cannot absorb nodes faster than a certain rate.  Dumping
-    a large number of nodes into a table using dht_insert_node will probably cause
-    most of these nodes to be discarded straight away.  (The tolerable rate is
-    difficult to estimate; it is probably on the order of one node every few seconds
-    per node already in the table divided by 8, for some suitable value of 8.) *)
+    An additionaly difficulty with [insert_node] is that, for various reasons, a
+    Kademlia routing table cannot absorb nodes faster than a certain rate.
+    Dumping a large number of nodes into a table using [insert_node] will
+    probably cause most of these nodes to be discarded straight away.  (The
+    tolerable rate is difficult to estimate; it is probably on the order of one
+    node every few seconds per node already in the table divided by 8, for some
+    suitable value of 8.) *)
 
 val ping_node : Unix.sockaddr -> unit
 (** This is the main bootstrapping primitive.  You pass it an address at which
@@ -75,19 +76,18 @@ val periodic : (bytes * int * Unix.sockaddr) option -> (event -> id:string -> un
     Dht_periodic also takes a callback, which will be called whenever something
     interesting happens (see below). *)
 
-val search : id:string -> port:int -> Unix.socket_domain -> (event -> id:string -> unit) -> unit
+val search : id:string -> ?port:int -> ?af:Unix.socket_domain -> (event -> id:string -> unit) -> unit
 (** This schedules a search for information about the info-hash specified in
-    id.  If port is not 0, it specifies the TCP port on which the current peer is
-    listening; in that case, when the search is complete it will be announced to the
-    network.  The port is in host order, beware if you got it from a struct
-    sockaddr_in.
+    [~id].  If [~port] is given, it specifies the TCP port on which the current
+    peer is listening; in that case, when the search is complete it will be
+    announced to the network.
 
     In either case, data is passed to the callback function as soon as it is
     available, possibly in multiple pieces.  The callback function will
     additionally be called when the search is complete.
 
-    Up to DHT_MAX_SEARCHES (1024) searches can be in progress at a given time;
-    any more, and dht_search will return -1.  If you specify a new search for
+    Up to [1024] searches can be in progress at a given time; any more, and
+    [search] will raise [Failure "dht_search"].  If you specify a new search for
     the same info hash as a search still in progress, the previous search is
     combined with the new one -- you will only receive a completion indication
     once. *)

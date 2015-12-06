@@ -45,7 +45,7 @@ external periodic : (bytes * int * Unix.sockaddr) option -> (event -> id:string 
 let dht_callback ev info_hash clos =
   clos ev info_hash
 
-let search ~id ~port af callback =
+let search ~id ?(port = 0) ?(af = Unix.PF_INET) callback =
   if String.length id <> 20 then invalid_arg "Dht.search";
   dht_search id port af callback
 

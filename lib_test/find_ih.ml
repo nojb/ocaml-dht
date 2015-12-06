@@ -118,7 +118,7 @@ end = struct
       );
     working
 
-  and search ?(port = 0) ?(af = Unix.PF_INET) id =
+  and search ?port ?af id =
     init ();
     prerr_endline "Searching...";
     try
@@ -126,7 +126,7 @@ end = struct
     with Not_found ->
       let strm, push = Lwt_stream.create () in
       Hashtbl.add searches id (strm, push);
-      Dht.search ~id ~port af the_cb;
+      Dht.search ~id ?port ?af the_cb;
       strm
 end
 
