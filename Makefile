@@ -6,6 +6,8 @@ STDLIB_DIR = `$(OCAMLFIND) printconf stdlib`
 LIBTEST_DIR = lib_test/
 CC = cc
 
+all: $(LIB_DIR)dht.cma $(LIBTEST_DIR)find_ih
+
 %.o: %.c
 	$(CC) $(CFLAGS) -I $(DHT_DIR) -I $(STDLIB_DIR) -I $(LIB_DIR) -o $@ -c $<
 
