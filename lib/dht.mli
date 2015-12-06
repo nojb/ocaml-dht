@@ -98,7 +98,7 @@ val search : id:string -> ?port:int -> ?af:Unix.socket_domain -> (event -> id:st
     combined with the new one -- you will only receive a completion indication
     once. *)
 
-val get_nodes : int -> int -> Unix.sockaddr list
+val get_nodes : ipv4:int -> ipv6:int -> Unix.sockaddr list
 (** This retrieves the list of known good nodes, starting with the nodes in our
     own bucket.  It is a good idea to save the list of known good nodes at
     shutdown, and ping them at startup. *)

@@ -66,7 +66,7 @@ let () =
   Callback.register "dht_hash" dht_hash;
   Callback.register "dht_random_bytes" dht_random_bytes
 
-external get_nodes : int -> int -> Unix.sockaddr list = "caml_dht_get_nodes"
+external get_nodes : ipv4:int -> ipv6:int -> Unix.sockaddr list = "caml_dht_get_nodes"
 
 type nodes =
   {
