@@ -5,3 +5,5 @@
 *.cma
 *.cmxa
 *.cmi
+lib_test/find_ih
+lib_test/find_ih.opt
