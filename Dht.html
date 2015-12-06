@@ -1,0 +1,180 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Dht" rel="Chapter" href="Dht.html"><title>Dht</title>
+</head>
+<body>
+<div class="navbar">&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;</div>
+<h1>Module <a href="type_Dht.html">Dht</a></h1>
+
+<pre><span class="keyword">module</span> Dht: <code class="code"><span class="keyword">sig</span></code> <a href="Dht.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+This interface implement the variant of the Kademlia Distributed Hash Table
+    (DHT) used in the Bittorrent network (``mainline'' variant).<br>
+</div>
+<hr width="100%">
+
+<pre><code><span id="TYPEevent"><span class="keyword">type</span> <code class="type"></code>event</span> = </code></pre><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTevent.EVENT_VALUES"><span class="constructor">EVENT_VALUES</span></span> <span class="keyword">of</span> <code class="type">Unix.sockaddr list</code></code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTevent.EVENT_SEARCH_DONE"><span class="constructor">EVENT_SEARCH_DONE</span></span></code></td>
+
+</tr></table>
+
+
+
+<pre><span id="VALinit"><span class="keyword">val</span> init</span> : <code class="type">Unix.file_descr -> Unix.file_descr -> id:string -> unit</code></pre><div class="info ">
+This must be called before using the library.  You pass it a bound IPv4
+    datagram socket, a bound IPv6 datagram socket, and your node <code class="code">id</code>, a
+    20-octet array that should be globally unique.
+<p>
+
+    If you're on a multi-homed host, you should bind the sockets to one of your
+    addresses.
+<p>
+
+    Node ids must be well distributed, so you cannot just use your Bittorrent
+    id; you should either generate a truly random value (using plenty of
+    entropy), or at least take the SHA-1 of something.  However, it is a good
+    idea to keep the id stable, so you may want to store it in stable storage
+    at client shutdown.<br>
+</div>
+
+<pre><span id="VALinsert_node"><span class="keyword">val</span> insert_node</span> : <code class="type">id:string -> Unix.sockaddr -> unit</code></pre><div class="info ">
+This is a softer bootstrapping method, which doesn't actually send a query
+    -- it only stores the node in the routing table for later use.  It is a good
+    idea to use that when e.g. restoring your routing table from disk.
+<p>
+
+    Note that <code class="code">insert_node</code> requires that you supply a node id.  If the id turns
+    out to be wrong, the DHT will eventually recover; still, inserting massive
+    amounts of incorrect information into your routing table is certainly not a
+    good idea.
+<p>
+
+    An additionaly difficulty with <code class="code">insert_node</code> is that, for various reasons, a
+    Kademlia routing table cannot absorb nodes faster than a certain rate.
+    Dumping a large number of nodes into a table using <code class="code">insert_node</code> will
+    probably cause most of these nodes to be discarded straight away.  (The
+    tolerable rate is difficult to estimate; it is probably on the order of one
+    node every few seconds per node already in the table divided by 8, for some
+    suitable value of 8.)<br>
+</div>
+
+<pre><span id="VALping_node"><span class="keyword">val</span> ping_node</span> : <code class="type">Unix.sockaddr -> unit</code></pre><div class="info ">
+This is the main bootstrapping primitive.  You pass it an address at which
+    you believe that a DHT node may be living, and a query will be sent.  If a node
+    replies, and if there is space in the routing table, it will be inserted.<br>
+</div>
+
+<pre><span id="VALperiodic"><span class="keyword">val</span> periodic</span> : <code class="type">(bytes * int * Unix.sockaddr) option -><br>       (<a href="Dht.html#TYPEevent">event</a> -> id:string -> unit) -> float</code></pre><div class="info ">
+This function should be called by your main loop periodically, and also
+    whenever data is available on the socket.  The time after which <code class="code">periodic</code>
+    should be called if no data is available is returned in the parameter tosleep.
+    (You do not need to be particularly accurate; actually, it is a good idea to be
+    late by a random value.)
+<p>
+
+    The parameters buf, buflen, from and fromlen optionally carry a received
+    message.  If buflen is 0, then no message was received.
+<p>
+
+    <code class="code">periodic</code> also takes a callback, which will be called whenever something
+    interesting happens (see below).<br>
+</div>
+
+<pre><span id="VALsearch"><span class="keyword">val</span> search</span> : <code class="type">id:string -><br>       ?port:int -><br>       ?af:Unix.socket_domain -> (<a href="Dht.html#TYPEevent">event</a> -> id:string -> unit) -> unit</code></pre><div class="info ">
+This schedules a search for information about the info-hash specified in
+    <code class="code">~id</code>.  If <code class="code">~port</code> is given, it specifies the TCP port on which the current
+    peer is listening; in that case, when the search is complete it will be
+    announced to the network.
+<p>
+
+    In either case, data is passed to the callback function as soon as it is
+    available, possibly in multiple pieces.  The callback function will
+    additionally be called when the search is complete.
+<p>
+
+    Up to <code class="code">1024</code> searches can be in progress at a given time; any more, and
+    <code class="code">search</code> will raise <code class="code"><span class="constructor">Failure</span> <span class="string">"dht_search"</span></code>.  If you specify a new search for
+    the same info hash as a search still in progress, the previous search is
+    combined with the new one -- you will only receive a completion indication
+    once.<br>
+</div>
+
+<pre><span id="VALget_nodes"><span class="keyword">val</span> get_nodes</span> : <code class="type">int -> int -> Unix.sockaddr list</code></pre><div class="info ">
+This retrieves the list of known good nodes, starting with the nodes in our
+    own bucket.  It is a good idea to save the list of known good nodes at
+    shutdown, and ping them at startup.<br>
+</div>
+
+<pre><code><span id="TYPEnodes"><span class="keyword">type</span> <code class="type"></code>nodes</span> = {</code></pre><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTnodes.good">good</span>&nbsp;: <code class="type">int</code>;</code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTnodes.dubious">dubious</span>&nbsp;: <code class="type">int</code>;</code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTnodes.cached">cached</span>&nbsp;: <code class="type">int</code>;</code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTnodes.incoming">incoming</span>&nbsp;: <code class="type">int</code>;</code></td>
+
+</tr></table>
+}
+
+
+
+<pre><span id="VALnodes"><span class="keyword">val</span> nodes</span> : <code class="type">Unix.socket_domain -> <a href="Dht.html#TYPEnodes">nodes</a></code></pre><div class="info ">
+This returns the number of known good, dubious and cached nodes in our
+    routing table.  This can be used to decide whether it's reasonable to start a
+    search; a search is likely to be successful as long as we have a few good nodes;
+    however, in order to avoid overloading your bootstrap nodes, you may want to
+    wait until good is at least 4 and good + doubtful is at least 30 or so.
+<p>
+
+    It also includes the number of nodes that recently sent us an unsolicited
+    request; this can be used to determine if the UDP port used for the DHT is
+    firewalled.
+<p>
+
+    If you want to display a single figure to the user, you should display <code class="code">good
+    + doubtful</code>, which is the total number of nodes in your routing table.  Some
+    clients try to estimate the total number of nodes, but this doesn't make
+    much sense -- since the result is exponential in the number of nodes in the
+    routing table, small variations in the latter cause huge jumps in the
+    former.<br>
+</div>
+</body></html>

@@ -1,0 +1,26 @@
+<html><head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Dht" rel="Chapter" href="Dht.html"><title>Dht</title>
+</head>
+<body>
+<code class="code"><span class="keyword">sig</span><br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;event&nbsp;=&nbsp;<span class="constructor">EVENT_VALUES</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Unix</span>.sockaddr&nbsp;list&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="constructor">EVENT_SEARCH_DONE</span><br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;init&nbsp;:&nbsp;<span class="constructor">Unix</span>.file_descr&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Unix</span>.file_descr&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;id:string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;insert_node&nbsp;:&nbsp;id:string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Unix</span>.sockaddr&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ping_node&nbsp;:&nbsp;<span class="constructor">Unix</span>.sockaddr&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;periodic&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(bytes&nbsp;*&nbsp;int&nbsp;*&nbsp;<span class="constructor">Unix</span>.sockaddr)&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">Dht</span>.event&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;id:string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;float<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;search&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;id:string&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?port:int&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?af:<span class="constructor">Unix</span>.socket_domain&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;(<span class="constructor">Dht</span>.event&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;id:string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;get_nodes&nbsp;:&nbsp;int&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Unix</span>.sockaddr&nbsp;list<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;nodes&nbsp;=&nbsp;{&nbsp;good&nbsp;:&nbsp;int;&nbsp;dubious&nbsp;:&nbsp;int;&nbsp;cached&nbsp;:&nbsp;int;&nbsp;incoming&nbsp;:&nbsp;int;&nbsp;}<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;nodes&nbsp;:&nbsp;<span class="constructor">Unix</span>.socket_domain&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Dht</span>.nodes<br>
+<span class="keyword">end</span></code></body></html>
