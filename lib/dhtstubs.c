@@ -29,8 +29,7 @@
 #include <caml/callback.h>
 #include <caml/bigarray.h>
 #include <caml/fail.h>
-
-#include "socketaddr.h"
+#include <caml/socketaddr.h>
 
 #include "dht.h"
 

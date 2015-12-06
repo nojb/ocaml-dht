@@ -35,6 +35,7 @@ let init s s6 ~id =
   dht_init s s6 id
 
 let insert_node ~id sa =
+  if String.length id <> 20 then invalid_arg "Dht.insert_node";
   dht_insert_node id sa
 
 let ping_node sa =
@@ -47,6 +48,7 @@ let periodic pkt cb =
   dht_periodic pkt cb
 
 let search ~id ~port af callback =
+  if String.length id <> 20 then invalid_arg "Dht.search";
   dht_search id port af callback
 
 let () =
