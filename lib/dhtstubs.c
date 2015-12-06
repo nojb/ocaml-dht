@@ -183,7 +183,7 @@ caml_dht_search(value id, value port, value dom, value closure)
     af = AF_INET6;
     break;
   default:
-    caml_failwith("dht_search");
+    caml_invalid_argument("dht_search");
     break;
   }
 
@@ -196,6 +196,76 @@ caml_dht_search(value id, value port, value dom, value closure)
   CAMLreturn(Val_unit);
 }
 
+CAMLprim value
+caml_dht_get_nodes(value num, value num6)
+{
+  CAMLparam2(num, num6);
+  CAMLlocal3(lst, sa, cons);
+
+  union sock_addr_union adr [num];
+  union sock_addr_union adr6 [num6];
+  int res, n, n6;
+
+  lst = Val_emptylist;
+  n = Int_val(num);
+  n6 = Int_val(num6);
+
+  res = dht_get_nodes(&adr[0].s_inet, &n, &adr6[0].s_inet6, &n6);
+
+  for (int i = 0; i < n; i ++) {
+    sa = alloc_sockaddr(&adr[i], sizeof(adr[i].s_inet), 0);
+    cons = caml_alloc(2, 0);
+    Store_field(cons, 0, sa);
+    Store_field(cons, 1, lst);
+    lst = cons;
+  }
+
+  for (int i = 0; i < n6; i ++) {
+    sa = alloc_sockaddr(&adr6[i], sizeof(adr6[i].s_inet6), 0);
+    cons = caml_alloc(2, 0);
+    Store_field(cons, 0, sa);
+    Store_field(cons, 1, lst);
+    lst = cons;
+  }
+
+  CAMLreturn(lst);
+}
+
+CAMLprim value
+caml_dht_nodes(value sdom)
+{
+  CAMLparam1(sdom);
+  CAMLlocal1(nodes);
+  int res, af, good, dubious, cached, incoming;
+
+  switch(sdom) {
+  case 0:
+    af = AF_UNIX;
+    break;
+  case 1:
+    af = AF_INET;
+    break;
+  case 2:
+    af = AF_INET6;
+    break;
+  default:
+    caml_invalid_argument("caml_dht_nodes");
+  }
+
+  res = dht_nodes(af, &good, &dubious, &cached, &incoming);
+
+  if (res < 0) {
+    caml_failwith("dht_nodes");
+  }
+
+  nodes = caml_alloc(4, 0);
+  Store_field(nodes, 0, Val_int(good));
+  Store_field(nodes, 1, Val_int(dubious));
+  Store_field(nodes, 2, Val_int(cached));
+  Store_field(nodes, 3, Val_int(incoming));
+
+  CAMLreturn(nodes);
+}
 
 /* Functions called by the DHT. */
 

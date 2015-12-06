@@ -28,3 +28,14 @@ val insert_node : id:string -> Unix.sockaddr -> unit
 val ping_node : Unix.sockaddr -> unit
 val periodic : (bytes * int * Unix.sockaddr) option -> (event -> id:string -> unit) -> float
 val search : id:string -> port:int -> Unix.socket_domain -> (event -> id:string -> unit) -> unit
+val get_nodes : int -> int -> Unix.sockaddr list
+
+type nodes =
+  {
+    good : int;
+    dubious : int;
+    cached : int;
+    incoming : int;
+  }
+
+val nodes : Unix.socket_domain -> nodes

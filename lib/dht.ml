@@ -25,27 +25,25 @@ type event =
 
 external dht_init : Unix.file_descr -> Unix.file_descr -> string -> unit = "caml_dht_init" "noalloc"
 external dht_insert_node : string -> Unix.sockaddr -> unit = "caml_dht_insert_node" "noalloc"
-external dht_ping_node : Unix.sockaddr -> unit = "caml_dht_ping_node" "noalloc"
-external dht_periodic : (bytes * int * Unix.sockaddr) option -> (event -> id:string -> unit) -> float = "caml_dht_periodic"
 external dht_search : string -> int -> Unix.socket_domain -> (event -> id:string -> unit) -> unit =
   "caml_dht_search"
 
 let init s s6 ~id =
-  if String.length id <> 20 then invalid_arg "Dht.init";
+  if String.length id <> 20 then invalid_arg "init";
   dht_init s s6 id
 
 let insert_node ~id sa =
-  if String.length id <> 20 then invalid_arg "Dht.insert_node";
+  if String.length id <> 20 then invalid_arg "insert_node";
   dht_insert_node id sa
 
-let ping_node sa =
-  dht_ping_node sa
+external ping_node : Unix.sockaddr -> unit =
+  "caml_dht_ping_node" "noalloc"
+
+external periodic : (bytes * int * Unix.sockaddr) option -> (event -> id:string -> unit) -> float =
+  "caml_dht_periodic"
 
 let dht_callback ev info_hash clos =
   clos ev info_hash
-
-let periodic pkt cb =
-  dht_periodic pkt cb
 
 let search ~id ~port af callback =
   if String.length id <> 20 then invalid_arg "Dht.search";
@@ -53,3 +51,15 @@ let search ~id ~port af callback =
 
 let () =
   Callback.register "dht_callback" dht_callback
+
+external get_nodes : int -> int -> Unix.sockaddr list = "caml_dht_get_nodes"
+
+type nodes =
+  {
+    good : int;
+    dubious : int;
+    cached : int;
+    incoming : int;
+  }
+
+external nodes : Unix.socket_domain -> nodes = "caml_dht_nodes"
