@@ -1,4 +1,1 @@
-align_ops=false
-strict_with=auto
-syntax=bitstring
-syntax=lwt
+match_clause=4

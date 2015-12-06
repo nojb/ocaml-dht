@@ -1,5 +1,6 @@
 (* The MIT License (MIT)
 
+   Copyright (c) 2010 ygrek <ygrek@autistici.org>
    Copyright (c) 2014 Nicolas Ojeda Bar <n.oje.bar@gmail.com>
 
    Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,9 +20,8 @@
    IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
    CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. *)
 
-val shuffle_array : 'a array -> unit
-(** shuffles an array randomly. *)
-  
-val array_exists : ('a -> bool) -> 'a array -> bool
-(** [array_exists f a] returns [true] if [f a.(i)] is true for some [i],
-    otherwise it returns [false]. *)
+external dht_init : Unix.file_descr -> Unix.file_descr -> string -> unit = "caml_dht_init" "noalloc"
+
+let init s s6 ~id =
+  if String.length id <> 20 then invalid_arg "Dht.init";
+  dht_init s s6 id

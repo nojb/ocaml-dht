@@ -1,41 +1,17 @@
-# OASIS_START
-# DO NOT EDIT (digest: a3c674b4239234cbbe53afe090018954)
+OCAMLFIND = ocamlfind
+LIB_DIR = lib/
+DHT_DIR = dht/
 
-SETUP = ocaml setup.ml
+$(LIB_DIR)dhtstubs.o: $(LIB_DIR)dhtstubs.c
+	$(OCAMLFIND) ocamlc -I $(DHT_DIR) -o $@ -c $<
 
-build: setup.data
-	$(SETUP) -build $(BUILDFLAGS)
+$(LIB_DIR)dht.cmo: $(LIB_DIR)dht.mli $(LIB_DIR)dht.ml
+	$(OCAMLFIND) ocamlc -I $(LIB_DIR) -o $@ -c $^
 
-doc: setup.data build
-	$(SETUP) -doc $(DOCFLAGS)
-
-test: setup.data build
-	$(SETUP) -test $(TESTFLAGS)
-
-all:
-	$(SETUP) -all $(ALLFLAGS)
-
-install: setup.data
-	$(SETUP) -install $(INSTALLFLAGS)
-
-uninstall: setup.data
-	$(SETUP) -uninstall $(UNINSTALLFLAGS)
-
-reinstall: setup.data
-	$(SETUP) -reinstall $(REINSTALLFLAGS)
+update_jech_dht:
+	git
 
 clean:
-	$(SETUP) -clean $(CLEANFLAGS)
+	rm -f $(LIB_DIR)*.[oa] $(LIB_DIR)*.cm[ioxa] $(LIB_DIR)*.cmxa
 
-distclean:
-	$(SETUP) -distclean $(DISTCLEANFLAGS)
-
-setup.data:
-	$(SETUP) -configure $(CONFIGUREFLAGS)
-
-configure:
-	$(SETUP) -configure $(CONFIGUREFLAGS)
-
-.PHONY: build doc test all install uninstall reinstall clean distclean configure
-
-# OASIS_STOP
+.PHONY: clean
