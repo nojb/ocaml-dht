@@ -1,9 +1,12 @@
 OCAMLFIND = ocamlfind
 LIB_DIR = lib/
 DHT_DIR = dht/
+CFLAGS = -Wall
+STDLIB_DIR = `$(OCAMLFIND) printconf stdlib`
+CC = cc
 
-$(LIB_DIR)dhtstubs.o: $(LIB_DIR)dhtstubs.c
-	$(OCAMLFIND) ocamlc -I $(DHT_DIR) -o $@ -c $<
+%.o: %.c
+	$(CC) $(CFLAGS) -I $(DHT_DIR) -I $(STDLIB_DIR) -I $(LIB_DIR) -o $@ -c $<
 
 $(LIB_DIR)dht.cmo: $(LIB_DIR)dht.mli $(LIB_DIR)dht.ml
 	$(OCAMLFIND) ocamlc -I $(LIB_DIR) -o $@ -c $^
