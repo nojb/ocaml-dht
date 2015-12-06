@@ -92,11 +92,21 @@ caml_dht_callback(void *closure, int event,
 }
 
 CAMLprim value
-caml_dht_init(value s, value s6, value id)
+caml_dht_init(value ipv4, value ipv6, value id)
 {
-  int res;
+  int res, s, s6;
 
-  res = dht_init(Int_val(s), Int_val(s6), (unsigned char *) String_val(id), NULL);
+  if (ipv4 == Val_int(0))
+    s = -1;
+  else
+    s = Int_val(Field(ipv4, 0));
+
+  if (ipv6 == Val_int(0))
+    s6 = -1;
+  else
+    s6 = Int_val(Field(ipv6, 0));
+
+  res = dht_init(s, s6, (unsigned char *) String_val(id), NULL);
 
   dht_debug = stderr;
 

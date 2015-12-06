@@ -106,7 +106,7 @@ end = struct
       Lwt_unix.bind s (Unix.ADDR_INET (Unix.inet_addr_any, 4567));
       Lwt_unix.bind s6 (Unix.ADDR_INET (Unix.inet6_addr_any, 4568));
       Lwt.async (fun () -> the_loop s s6);
-      Dht.init (Lwt_unix.unix_file_descr s) (Lwt_unix.unix_file_descr s6) ~id:I.id
+      Dht.init ~ipv4:(Lwt_unix.unix_file_descr s) ~ipv6:(Lwt_unix.unix_file_descr s6) ~id:I.id
     end
 
   and bootstrap () =

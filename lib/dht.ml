@@ -23,14 +23,13 @@ type event =
   | EVENT_VALUES of Unix.sockaddr list
   | EVENT_SEARCH_DONE
 
-external dht_init : Unix.file_descr -> Unix.file_descr -> string -> unit = "caml_dht_init" "noalloc"
-external dht_insert_node : string -> Unix.sockaddr -> unit = "caml_dht_insert_node" "noalloc"
-external dht_search : string -> int -> Unix.socket_domain -> (event -> id:string -> unit) -> unit =
-  "caml_dht_search"
+external dht_init : Unix.file_descr option -> Unix.file_descr option -> string -> unit = "caml_dht_init" "noalloc"
 
-let init s s6 ~id =
+let init ?ipv4 ?ipv6 ~id =
   if String.length id <> 20 then invalid_arg "init";
-  dht_init s s6 id
+  dht_init ipv4 ipv6 id
+
+external dht_insert_node : string -> Unix.sockaddr -> unit = "caml_dht_insert_node" "noalloc"
 
 let insert_node ~id sa =
   if String.length id <> 20 then invalid_arg "insert_node";
@@ -41,6 +40,9 @@ external ping_node : Unix.sockaddr -> unit =
 
 external periodic : (bytes * int * Unix.sockaddr) option -> (event -> id:string -> unit) -> float =
   "caml_dht_periodic"
+
+external dht_search : string -> int -> Unix.socket_domain -> (event -> id:string -> unit) -> unit =
+  "caml_dht_search"
 
 let dht_callback ev info_hash clos =
   clos ev info_hash

@@ -27,7 +27,7 @@
     The following documentation is lightly adapted from the one coming with that
     library. *)
 
-val init : Unix.file_descr -> Unix.file_descr -> id:string -> unit
+val init : ?ipv4:Unix.file_descr -> ?ipv6:Unix.file_descr -> id:string -> unit
 (** This must be called before using the library.  You pass it a bound IPv4
     datagram socket, a bound IPv6 datagram socket, and your node [id], a
     20-octet array that should be globally unique.
