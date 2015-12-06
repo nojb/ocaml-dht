@@ -25,4 +25,5 @@ type event =
 
 val init : Unix.file_descr -> Unix.file_descr -> id:string -> unit
 val insert_node : string -> Unix.sockaddr -> unit
+val ping_node : Unix.sockaddr -> unit
 val periodic : (bytes * int * Unix.sockaddr) option -> (event -> string -> unit) -> float

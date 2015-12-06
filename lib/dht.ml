@@ -28,6 +28,7 @@ type event =
 
 external dht_init : Unix.file_descr -> Unix.file_descr -> string -> unit = "caml_dht_init" "noalloc"
 external dht_insert_node : string -> Unix.sockaddr -> unit = "caml_dht_insert_node" "noalloc"
+external dht_ping_node : Unix.sockaddr -> unit = "caml_dht_ping_node" "noalloc"
 external dht_periodic : (bytes * int * Unix.sockaddr) option -> (event -> string -> unit) -> float = "caml_dht_periodic"
 
 let init s s6 ~id =
@@ -36,6 +37,9 @@ let init s s6 ~id =
 
 let insert_node id sa =
   dht_insert_node id sa
+
+let ping_node sa =
+  dht_ping_node sa
 
 let dht_callback ev info_hash clos =
   clos ev info_hash
