@@ -98,6 +98,8 @@ caml_dht_init(value s, value s6, value id)
 
   res = dht_init(Int_val(s), Int_val(s6), (unsigned char *) String_val(id), NULL);
 
+  dht_debug = stderr;
+
   if (res < 0) {
     caml_failwith("dht_init");
   }
@@ -127,9 +129,9 @@ caml_dht_ping_node(value addr)
   get_sockaddr(addr, &sa, &salen);
   res = dht_ping_node(&sa.s_gen, salen);
 
-  if (res < 0) {
-    caml_failwith("dht_ping_node");
-  }
+  /* if (res < 0) { */
+  /*   caml_failwith("dht_ping_node"); */
+  /* } */
 
   return Val_unit;
 }
@@ -236,9 +238,9 @@ caml_dht_nodes(value sdom)
 {
   CAMLparam1(sdom);
   CAMLlocal1(nodes);
-  int res, af, good, dubious, cached, incoming;
+  int af, good, dubious, cached, incoming;
 
-  switch(sdom) {
+  switch(Int_val(sdom)) {
   case 0:
     af = AF_UNIX;
     break;
@@ -252,11 +254,7 @@ caml_dht_nodes(value sdom)
     caml_invalid_argument("caml_dht_nodes");
   }
 
-  res = dht_nodes(af, &good, &dubious, &cached, &incoming);
-
-  if (res < 0) {
-    caml_failwith("dht_nodes");
-  }
+  dht_nodes(af, &good, &dubious, &cached, &incoming);
 
   nodes = caml_alloc(4, 0);
   Store_field(nodes, 0, Val_int(good));
