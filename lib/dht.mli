@@ -45,10 +45,10 @@ val insert_node : id:string -> Unix.sockaddr -> unit
     -- it only stores the node in the routing table for later use.  It is a good
     idea to use that when e.g. restoring your routing table from disk.
 
-    Note that dht_insert_node requires that you supply a node id.  If the id
-    turns out to be wrong, the DHT will eventually recover; still, inserting
-    massive amounts of incorrect information into your routing table is
-    certainly not a good idea.
+    Note that [insert_node] requires that you supply a node id.  If the id turns
+    out to be wrong, the DHT will eventually recover; still, inserting massive
+    amounts of incorrect information into your routing table is certainly not a
+    good idea.
 
     An additionaly difficulty with [insert_node] is that, for various reasons, a
     Kademlia routing table cannot absorb nodes faster than a certain rate.
@@ -73,12 +73,12 @@ val periodic : (bytes * int * Unix.sockaddr) option -> (event -> id:string -> un
     The parameters buf, buflen, from and fromlen optionally carry a received
     message.  If buflen is 0, then no message was received.
 
-    Dht_periodic also takes a callback, which will be called whenever something
+    [periodic] also takes a callback, which will be called whenever something
     interesting happens (see below). *)
 
 val search : id:string -> ?port:int -> ?af:Unix.socket_domain -> (event -> id:string -> unit) -> unit
 (** This schedules a search for information about the info-hash specified in
-    [~id].  If [~port] is given, it specifies the TCP port on which the current
+    [id].  If [port] is given, it specifies the TCP port on which the current
     peer is listening; in that case, when the search is complete it will be
     announced to the network.
 

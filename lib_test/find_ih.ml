@@ -19,6 +19,25 @@
    IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
    CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. *)
 
+let hex_of_string s =
+  let h = Buffer.create (2 * String.length s) in
+  for i = 0 to String.length s - 1 do
+    Printf.bprintf h "%02x" (int_of_char s.[i]);
+  done;
+  Buffer.contents h
+
+let string_of_hex h =
+  Printf.eprintf "string_of_hex: %S, len=%d\n%!" h (String.length h);
+  if String.length h mod 2 <> 0 then invalid_arg "string_of_hex";
+  let s = Bytes.create (String.length h / 2) in
+  let c = Bytes.create 2 in
+  for i = 0 to String.length h / 2 - 1 do
+    Bytes.set c 0 h.[2*i];
+    Bytes.set c 1 h.[2*i+1];
+    Bytes.set s i (Scanf.sscanf (Bytes.unsafe_to_string c) "%x" char_of_int)
+  done;
+  Bytes.unsafe_to_string s
+
 open Lwt.Infix
 
 module Dht_lwt (I : sig val id : string end) : sig
@@ -44,9 +63,10 @@ end = struct
     let strm, push = Hashtbl.find searches id in
     match ev with
     | Dht.EVENT_VALUES addrs ->
+        Printf.eprintf "\nReceived %d peers for %s\n%!" (List.length addrs) (hex_of_string id);
         List.iter (fun addr -> push (Some addr)) addrs
     | Dht.EVENT_SEARCH_DONE ->
-        prerr_endline "\nSearching done";
+        Printf.eprintf "\nSearching for %s done.\n%!" (hex_of_string id);
         Hashtbl.remove searches id;
         push None
 
@@ -111,7 +131,7 @@ end = struct
             if Array.length he.Unix.h_addr_list > 0 then
               Lwt.wrap1 Dht.ping_node (Unix.ADDR_INET (he.Unix.h_addr_list.(0), port))
             else begin
-              Printf.ksprintf prerr_endline "bootstrap: node %s not found" name;
+              Printf.ksprintf prerr_endline "Bootstrap: node %s not found" name;
               Lwt.return_unit
             end
           ) bootstrap_nodes >>= loop
@@ -120,7 +140,7 @@ end = struct
 
   and search ?port ?af id =
     init ();
-    prerr_endline "Searching...";
+    Printf.eprintf "Searching for %s..." (hex_of_string id);
     try
       fst (Hashtbl.find searches id)
     with Not_found ->
@@ -162,49 +182,5 @@ let main info_hash =
       Printf.eprintf "%23s " (string_of_sockaddr addr)
     ) strm
 
-let invalid_arg fmt =
-  Printf.ksprintf (fun str -> raise (Invalid_argument str)) fmt
-
-let hexa = "0123456789abcdef"
-and hexa1 =
-  "0000000000000000111111111111111122222222222222223333333333333333\
-   4444444444444444555555555555555566666666666666667777777777777777\
-   88888888888888889999999999999999aaaaaaaaaaaaaaaabbbbbbbbbbbbbbbb\
-   ccccccccccccccccddddddddddddddddeeeeeeeeeeeeeeeeffffffffffffffff"
-and hexa2 =
-  "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\
-   0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\
-   0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\
-   0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-
-let of_char c =
-  let x = Char.code c in
-  hexa.[x lsr 4], hexa.[x land 0xf]
-
-let to_char x y =
-  let code c = match c with
-    | '0'..'9' -> Char.code c - 48 (* Char.code '0' *)
-    | 'A'..'F' -> Char.code c - 55 (* Char.code 'A' + 10 *)
-    | 'a'..'f' -> Char.code c - 87 (* Char.code 'a' + 10 *)
-    | _ -> invalid_arg "Hex.to_char: %d is an invalid char" (Char.code c)
-  in
-  Char.chr (code x lsl 4 + code y)
-
-let to_string (`Hex (s : string)) =
-  if s = "" then ""
-  else
-    let n = String.length s in
-    let buf = Bytes.create (n/2) in
-    let rec aux i j =
-      if i >= n then ()
-      else if j >= n then invalid_arg "hex conversion: invalid hex string"
-      else (
-        Bytes.set buf (i/2) (to_char s.[i] s.[j]);
-        aux (j+1) (j+2)
-      )
-    in
-    aux 0 1;
-    Bytes.unsafe_to_string buf
-
 let () =
-  Lwt_main.run (main (to_string (`Hex Sys.argv.(1))))
+  Lwt_main.run (main (string_of_hex Sys.argv.(1)))
