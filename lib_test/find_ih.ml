@@ -40,56 +40,63 @@ let string_of_hex h =
 
 open Lwt.Infix
 
-module Dht_lwt (I : sig val id : string end) : sig
-  val bootstrap : unit -> unit Lwt.t
-  val search : ?port:int -> ?af:Unix.socket_domain -> string -> Unix.sockaddr Lwt_stream.t
-  (* val save : Lwt_io.output_channel -> unit Lwt.t *)
-  (* val restore : Lwt_io.input_channel -> unit Lwt.t *)
+let pr fmt =
+  Printf.ksprintf prerr_endline fmt
+
+module Dht_lwt : sig
+  type t
+  val create: ?port:int -> string -> t
+  val search: t -> string -> Unix.sockaddr Lwt_stream.t
 end = struct
-  let searches = Hashtbl.create 0
-  let inited = ref false
+  type t =
+    {
+      id: string;
+      port: int;
+      fd: Lwt_unix.file_descr;
+      searches: (string, Unix.sockaddr Lwt_stream.t * (Unix.sockaddr option -> unit)) Hashtbl.t;
+      ready: unit Lwt.t;
+    }
 
-  (* let save oc = *)
-  (*   prerr_endline "Saving dht info...\n%!"; *)
-  (*   let info = {id = !id; good_nodes = Dht.get_nodes 20 20} in *)
-  (*   Marshal.to_channel (open_out ".dht_info") info [] *)
-
-  (* let restore ic = *)
-  (*   prerr_endline "Restore dht info...\n"; *)
-  (*   let info : restore_info = Marshal.from_channel (open_in ".dht_info") in *)
-  (*   List.iter (fun sa -> Dht.ping_node sa) info.good_nodes *)
-
-  let the_cb ev ~id =
-    let strm, push = Hashtbl.find searches id in
+  let on_progress {searches; _} ev ~id =
+    let _, push = Hashtbl.find searches id in
     match ev with
     | Dht.EVENT_VALUES addrs ->
-        Printf.eprintf "\nReceived %d peers for %s\n%!" (List.length addrs) (hex_of_string id);
+        pr "Received %d peers for %s" (List.length addrs) (hex_of_string id);
         List.iter (fun addr -> push (Some addr)) addrs
     | Dht.EVENT_SEARCH_DONE ->
-        Printf.eprintf "\nSearching for %s done.\n%!" (hex_of_string id);
+        pr "Searching for %s done." (hex_of_string id);
         Hashtbl.remove searches id;
         push None
 
-  let the_loop s s6 =
+  let the_loop t =
     let buf = Bytes.create 4096 in
     let rec loop sleep =
       Lwt.pick
         [
           (Lwt_unix.sleep sleep >>= fun () -> Lwt.return `Timeout);
-          (Lwt_unix.wait_read s >>= fun () -> Lwt.return (`Read s));
-          (Lwt_unix.wait_read s6 >>= fun () -> Lwt.return (`Read s6));
+          (Lwt_unix.wait_read t.fd >>= fun () -> Lwt.return (`Read t.fd));
         ]
       >>= function
       | `Timeout ->
-          Lwt.wrap2 Dht.periodic None the_cb >>=
-          loop
+          pr "Timeout";
+          Lwt.wrap2 Dht.periodic None (on_progress t) >>= loop
       | `Read fd ->
           Lwt_unix.recvfrom fd buf 0 (Bytes.length buf - 1) [] >>= fun (len, sa) ->
           Bytes.set buf len '\000';
-          Lwt.wrap2 Dht.periodic (Some (buf, len, sa)) the_cb >>=
-          loop
+          Lwt.wrap2 Dht.periodic (Some (buf, len, sa)) (on_progress t) >>= loop
     in
     loop 0.0
+
+  let search t id =
+    pr "Searching for %s..." (hex_of_string id);
+    let {port; searches; _} = t in
+    match Hashtbl.find searches id with
+    | strm, _ -> strm
+    | exception Not_found ->
+        let strm, push = Lwt_stream.create () in
+        Hashtbl.add searches id (strm, push);
+        let _ = t.ready >|= fun () -> Dht.search ~id ~port (on_progress t) in
+        strm
 
   let bootstrap_nodes =
     [
@@ -97,59 +104,41 @@ end = struct
       "router.utorrent.com", 6881;
     ]
 
-  let rec init () =
-    if not !inited then begin
-      inited := true;
-      prerr_endline "Initializing...";
-      let s = Lwt_unix.socket Unix.PF_INET Unix.SOCK_DGRAM 0 in
-      let s6 = Lwt_unix.socket Unix.PF_INET6 Unix.SOCK_DGRAM 0 in
-      Lwt_unix.bind s (Unix.ADDR_INET (Unix.inet_addr_any, 4567));
-      Lwt_unix.bind s6 (Unix.ADDR_INET (Unix.inet6_addr_any, 4568));
-      Lwt.async (fun () -> the_loop s s6);
-      Dht.init ~ipv4:(Lwt_unix.unix_file_descr s) ~ipv6:(Lwt_unix.unix_file_descr s6) ~id:I.id
-    end
-
-  and bootstrap () =
-    init ();
-    prerr_endline "Bootstrapping...";
-    let working, finished = Lwt.wait () in
-    let rec loop () =
-      let nodes = Dht.nodes Unix.PF_INET in
-      if nodes.Dht.good >= 1 then begin
-        prerr_endline "Bootstrap done!";
-        Lwt.wrap2 Lwt.wakeup finished ()
+  let bootstrap t =
+    pr "Bootstrapping... %s" (hex_of_string t.id);
+    let query (name, port) =
+      Lwt_unix.gethostbyname name >>= fun he ->
+      if Array.length he.Unix.h_addr_list > 0 then begin
+        pr "Bootstrap: pinging %s..." name;
+        Lwt.wrap1 Dht.ping_node (Unix.ADDR_INET (he.Unix.h_addr_list.(0), port))
       end else begin
-        let nodes = Dht.nodes Unix.PF_INET in
-        Printf.ksprintf prerr_endline "Waiting for bootstrap (good=%d, good+dubious=%d)"
-          nodes.Dht.good (nodes.Dht.good + nodes.Dht.dubious);
-        Lwt_unix.sleep 1.0 >>= loop
+        pr "Bootstrap: node %s not found" name;
+        Lwt.return_unit
       end
     in
-    let (_ : _ Lwt_stream.t) = search I.id in
-    Lwt.async (fun () ->
-        Lwt_list.iter_p (fun (name, port) ->
-            Lwt_unix.gethostbyname name >>= fun he ->
-            if Array.length he.Unix.h_addr_list > 0 then begin
-              Printf.eprintf "Bootstrap: pinging %s...\n%!" name;
-              Lwt.wrap1 Dht.ping_node (Unix.ADDR_INET (he.Unix.h_addr_list.(0), port))
-            end else begin
-              Printf.eprintf "Bootstrap: node %s not found\n%!" name;
-              Lwt.return_unit
-            end
-          ) bootstrap_nodes >>= loop
-      );
-    working
+    let rec wait () =
+      let {Dht.good; dubious; _} = Dht.nodes Unix.PF_INET in
+      pr "Waiting: good: %d dubious: %d" good dubious;
+      if good >= 2 && good + dubious >= 10 then begin
+        pr "Bootstrap done!";
+        Lwt.return_unit
+      end else begin
+        Lwt_unix.sleep 1.0 >>= wait
+      end
+    in
+    Lwt_list.iter_p query bootstrap_nodes >>= fun () ->
+    let strm = search t t.id in
+    Lwt.choose [Lwt_stream.junk_while (fun _ -> true) strm; wait ()]
 
-  and search ?port ?af id =
-    init ();
-    Printf.eprintf "Searching for %s..." (hex_of_string id);
-    try
-      fst (Hashtbl.find searches id)
-    with Not_found ->
-      let strm, push = Lwt_stream.create () in
-      Hashtbl.add searches id (strm, push);
-      Dht.search ~id ?port ?af the_cb;
-      strm
+  let create ?(port = 4567) id =
+    let fd = Lwt_unix.socket Unix.PF_INET Unix.SOCK_DGRAM 0 in
+    Lwt_unix.bind fd (Unix.ADDR_INET (Unix.inet_addr_any, port));
+    let ready, w = Lwt.wait () in
+    let t = {id; port; fd; searches = Hashtbl.create 0; ready} in
+    Lwt.async (fun () -> the_loop t);
+    Dht.init ~ipv4:(Lwt_unix.unix_file_descr fd) ?ipv6:None ~id;
+    let _ = bootstrap t >|= Lwt.wakeup w in
+    t
 end
 
 let genid () =
@@ -158,8 +147,6 @@ let genid () =
     Bytes.set s i (char_of_int (Random.int 256))
   done;
   Bytes.unsafe_to_string s
-
-(* let id = genid () *)
 
 let string_of_sockaddr = function
   | Unix.ADDR_UNIX s ->
@@ -174,15 +161,10 @@ type restore_info =
   }
 
 let main info_hash =
-  let module D = Dht_lwt (struct let id = genid () end) in
-  D.bootstrap () >>= fun () ->
-  let strm = D.search info_hash in
-  let i = ref 0 in
-  Lwt_stream.iter (fun addr ->
-      incr i;
-      if !i mod 5 = 0 then prerr_newline ();
-      Printf.eprintf "%23s " (string_of_sockaddr addr)
-    ) strm
+  let id = genid () in
+  let dht = Dht_lwt.create id in
+  let strm = Dht_lwt.search dht info_hash in
+  Lwt_stream.iter (fun addr -> pr "%s" (string_of_sockaddr addr)) strm
 
 let () =
   Lwt_main.run (main (string_of_hex Sys.argv.(1)))
