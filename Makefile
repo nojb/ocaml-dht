@@ -17,10 +17,10 @@ $(LIB_DIR)dhtstubs.o: $(LIB_DIR)dhtstubs.c
 	$(CC) $(CFLAGS) -I $(DHT_DIR) -I $(STDLIB_DIR) -I $(LIB_DIR) -o $@ -c $<
 
 $(LIB_DIR)dht.cmo: $(LIB_DIR)dht.mli $(LIB_DIR)dht.ml
-	$(OCAMLFIND) ocamlc $(OCAMLFLAGS) -I $(LIB_DIR) -o $@ -c $^
+	$(OCAMLFIND) ocamlc $(OCAMLFLAGS) -I $(LIB_DIR) -c $^
 
 $(LIB_DIR)dht.cmx: $(LIB_DIR)dht.mli $(LIB_DIR)dht.ml
-	$(OCAMLFIND) ocamlopt $(OCAMLFLAGS) -I $(LIB_DIR) -o $@ -c $^
+	$(OCAMLFIND) ocamlopt $(OCAMLFLAGS) -I $(LIB_DIR) -c $^
 
 $(LIBTEST_DIR)find_ih: $(LIBTEST_DIR)find_ih.ml $(LIB_DIR)dht.cma
 	$(OCAMLFIND) ocamlc $(OCAMLFLAGS) -package lwt.unix -I $(LIB_DIR) -linkpkg -o $@ dht.cma $<
