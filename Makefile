@@ -6,9 +6,8 @@ LIBTEST_DIR = lib_test/
 DOC_DIR = doc/
 STDLIB_DIR = `$(CAMLC) -where`
 CFLAGS = -Wall -std=c99
-CAMLFLAGS = -safe-string -g -bin-annot
+CAMLFLAGS = -safe-string -g -bin-annot -strict-sequence -strict-formats -warn-error +a -w +a
 CC = $(shell ocamlc -config | grep bytecomp_c_co | cut -d: -f 2)
-LWT_DIR = $(shell ocamlfind query lwt)
 
 all: lib test_lib
 
@@ -25,10 +24,10 @@ $(LIB_DIR)dht.cmx: $(LIB_DIR)dht.mli $(LIB_DIR)dht.ml
 	$(CAMLOPT) $(CAMLFLAGS) -I $(LIB_DIR) -c $^
 
 $(LIBTEST_DIR)find_ih: $(LIBTEST_DIR)find_ih.ml $(LIB_DIR)dht.cma
-	$(CAMLC) $(CAMLFLAGS) -I $(LWT_DIR) -I $(LIB_DIR) -o $@ dht.cma bigarray.cma unix.cma lwt.cma lwt-unix.cma $<
+	$(CAMLC) $(CAMLFLAGS) -I $(LIB_DIR) -o $@ dht.cma bigarray.cma unix.cma $<
 
 $(LIBTEST_DIR)find_ih.opt: $(LIBTEST_DIR)find_ih.ml $(LIB_DIR)dht.cmxa
-	$(CAMLOPT) $(CAMLFLAGS) -I $(LWT_DIR) -I $(LIB_DIR) -o $@ dht.cmxa bigarray.cmxa unix.cmxa lwt.cmxa lwt-unix.cmxa $<
+	$(CAMLOPT) $(CAMLFLAGS) -I $(LIB_DIR) -o $@ dht.cmxa bigarray.cmxa unix.cmxa $<
 
 lib: $(LIB_DIR)dht_stubs.o $(DHT_DIR)dht.o $(LIB_DIR)dht.cmo $(LIB_DIR)dht.cmx
 	ocamlmklib -custom -o $(LIB_DIR)dht $^

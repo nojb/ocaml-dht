@@ -25,7 +25,7 @@ type event =
 
 external dht_init : Unix.file_descr option -> Unix.file_descr option -> string -> unit = "caml_dht_init"
 
-let init ?ipv4 ?ipv6 ~id =
+let init ?ipv4 ?ipv6 id =
   if String.length id <> 20 then invalid_arg "init";
   dht_init ipv4 ipv6 id
 
@@ -37,11 +37,11 @@ let insert_node ~id sa =
 
 external ping_node : Unix.sockaddr -> unit = "caml_dht_ping_node"
 
-external periodic : (bytes * int * Unix.sockaddr) option -> (event -> id:string -> unit) -> float = "caml_dht_periodic"
+external periodic : (bytes * int * Unix.sockaddr) option -> (event -> string -> unit) -> float = "caml_dht_periodic"
 
-external dht_search : string -> int -> Unix.socket_domain -> (event -> id:string -> unit) -> unit = "caml_dht_search"
+external dht_search : string -> int -> Unix.socket_domain -> (event -> string -> unit) -> unit = "caml_dht_search"
 
-let search ~id ?(port = 0) ?(af = Unix.PF_INET) callback =
+let search id ?(port = 0) ?(af = Unix.PF_INET) callback =
   if String.length id <> 20 then invalid_arg "Dht.search";
   dht_search id port af callback
 

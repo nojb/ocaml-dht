@@ -27,7 +27,7 @@
     The following documentation is lightly adapted from the one coming with that
     library. *)
 
-val init : ?ipv4:Unix.file_descr -> ?ipv6:Unix.file_descr -> id:string -> unit
+val init : ?ipv4:Unix.file_descr -> ?ipv6:Unix.file_descr -> string -> unit
 (** This must be called before using the library.  You pass it a bound IPv4
     datagram socket, a bound IPv6 datagram socket, and your node [id], a
     20-octet array that should be globally unique.
@@ -68,7 +68,7 @@ type event =
   | EVENT_VALUES of Unix.sockaddr list
   | EVENT_SEARCH_DONE
 
-val periodic : (bytes * int * Unix.sockaddr) option -> (event -> id:string -> unit) -> float
+val periodic : (bytes * int * Unix.sockaddr) option -> (event -> string -> unit) -> float
 (** This function should be called by your main loop periodically, and also
     whenever data is available on the socket.  The time after which [periodic]
     should be called if no data is available is returned.  (You do not need to
@@ -82,7 +82,7 @@ val periodic : (bytes * int * Unix.sockaddr) option -> (event -> id:string -> un
     [periodic] also takes a callback, which will be called whenever something
     interesting happens (see below). *)
 
-val search : id:string -> ?port:int -> ?af:Unix.socket_domain -> (event -> id:string -> unit) -> unit
+val search : string -> ?port:int -> ?af:Unix.socket_domain -> (event -> string -> unit) -> unit
 (** This schedules a search for information about the info-hash specified in
     [id].  If [port] is given, it specifies the TCP port on which the current
     peer is listening; in that case, when the search is complete it will be
