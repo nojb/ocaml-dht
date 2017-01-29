@@ -8,13 +8,14 @@ STDLIB_DIR = `$(CAMLC) -where`
 CFLAGS = -Wall -std=c99
 CAMLFLAGS = -safe-string -g -bin-annot
 CC = cc
+LWT_DIR = $(shell ocamlfind query lwt)
 
 all: lib test_lib
 
 $(DHT_LIB)dht.o: $(DHT_LIB)dht.h $(DHT_LIB)dht.c
 	$(MAKE) -C dht
 
-$(LIB_DIR)dhtstubs.o: $(LIB_DIR)dhtstubs.c
+$(LIB_DIR)dht_stubs.o: $(LIB_DIR)dht_stubs.c
 	$(CC) $(CFLAGS) -I $(DHT_DIR) -I $(STDLIB_DIR) -I $(LIB_DIR) -o $@ -c $<
 
 $(LIB_DIR)dht.cmo: $(LIB_DIR)dht.mli $(LIB_DIR)dht.ml
@@ -24,12 +25,12 @@ $(LIB_DIR)dht.cmx: $(LIB_DIR)dht.mli $(LIB_DIR)dht.ml
 	$(CAMLOPT) $(CAMLFLAGS) -I $(LIB_DIR) -c $^
 
 $(LIBTEST_DIR)find_ih: $(LIBTEST_DIR)find_ih.ml $(LIB_DIR)dht.cma
-	$(CAMLC) $(CAMLFLAGS) -package lwt.unix -I $(LIB_DIR) -linkpkg -o $@ dht.cma $<
+	$(CAMLC) $(CAMLFLAGS) -I $(LWT_DIR) -I $(LIB_DIR) -o $@ dht.cma bigarray.cma unix.cma lwt.cma lwt-unix.cma $<
 
 $(LIBTEST_DIR)find_ih.opt: $(LIBTEST_DIR)find_ih.ml $(LIB_DIR)dht.cmxa
-	$(CAMLOPT) $(CAMLFLAGS) -package lwt.unix -I $(LIB_DIR) -linkpkg -o $@ dht.cmxa $<
+	$(CAMLOPT) $(CAMLFLAGS) -I $(LWT_DIR) -I $(LIB_DIR) -o $@ dht.cmxa bigarray.cmxa unix.cmxa lwt.cmxa lwt-unix.cmxa $<
 
-lib: $(LIB_DIR)dhtstubs.o $(DHT_DIR)dht.o $(LIB_DIR)dht.cmo $(LIB_DIR)dht.cmx
+lib: $(LIB_DIR)dht_stubs.o $(DHT_DIR)dht.o $(LIB_DIR)dht.cmo $(LIB_DIR)dht.cmx
 	ocamlmklib -custom -o $(LIB_DIR)dht $^
 
 install: lib $(LIB_DIR)META

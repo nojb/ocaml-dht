@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Nicolas Ojeda Bar <n.oje.bar@gmail.com>
+/* Copyright (C) 2015-2017 Nicolas Ojeda Bar <n.oje.bar@gmail.com>
 
    This file is part of ocaml-libutp.
 
@@ -33,9 +33,9 @@
 
 #include "dht.h"
 
-static void caml_dht_callback (value closure, int event, const unsigned char *info_hash, const void *data, size_t data_len)
+CAMLprim void caml_dht_callback (void *closure, int event, const unsigned char *info_hash, const void *data, size_t data_len)
 {
-  CAMLparam1 (closure);
+  CAMLparam0 ();
   CAMLlocal5 (ev, ih, lst, cons, addr);
   union sock_addr_union from;
   const unsigned char *p = data;
@@ -82,7 +82,7 @@ static void caml_dht_callback (value closure, int event, const unsigned char *in
   ih = caml_alloc_string (20);
   memcpy (String_val(ih), info_hash, 20);
 
-  caml_callback3 (*caml_named_value ("dht_callback"), ev, ih, closure);
+  caml_callback2 (*(value *)closure, ev, ih);
 
   CAMLreturn0;
 }
@@ -152,17 +152,23 @@ CAMLprim value caml_dht_periodic (value pkt_opt, value closure)
   union sock_addr_union from;
   socklen_param_type fromlen;
   int res;
+  value *root = malloc (sizeof (closure));
+  *root = closure;
+  caml_register_generational_global_root (root);
 
   if (pkt_opt == Val_int(0)) {
-    res = dht_periodic (NULL, 0, NULL, 0, &tosleep, &caml_dht_callback, (void *) closure);
+    res = dht_periodic (NULL, 0, NULL, 0, &tosleep, &caml_dht_callback, root);
   } else {
     pkt = Field (pkt_opt, 0);
     buf = Field (pkt, 0);
     buflen = Field (pkt, 1);
     addr = Field (pkt, 2);
     get_sockaddr (addr, &from, &fromlen);
-    res = dht_periodic (String_val(buf), Int_val(buflen), &from.s_gen, fromlen, &tosleep, &caml_dht_callback, (void *) closure);
+    res = dht_periodic (String_val(buf), Int_val(buflen), &from.s_gen, fromlen, &tosleep, &caml_dht_callback, root);
   }
+
+  caml_remove_generational_global_root (root);
+  free (root);
 
   if (res < 0) {
     caml_failwith ("dht_periodic");
@@ -175,6 +181,7 @@ CAMLprim value caml_dht_search (value id, value port, value dom, value closure)
 {
   CAMLparam4 (id, port, dom, closure);
   int res, af;
+  value *root;
 
   switch (Int_val(dom)) {
     case 0:
@@ -191,8 +198,13 @@ CAMLprim value caml_dht_search (value id, value port, value dom, value closure)
       break;
   }
 
-  res = dht_search ((unsigned char *) String_val (id), Int_val (port), af, &caml_dht_callback, (void *) closure);
-
+  root = malloc (sizeof (value));
+  *root = closure;
+  caml_register_generational_global_root (root);
+  res = dht_search ((unsigned char *) String_val (id), Int_val (port), af, &caml_dht_callback, root);
+  caml_remove_generational_global_root (root);
+  free (root);
+  
   if (res < 0) {
     caml_failwith ("dht_search");
   }
@@ -297,7 +309,7 @@ void dht_hash(void *hash_return, int hash_size, const void *v1, int len1, const 
 
 int dht_random_bytes (void *buf, size_t size)
 {
-  CAMLparam0();
+  CAMLparam0 ();
   CAMLlocal1 (ba);
   ba = caml_ba_alloc_dims (CAML_BA_UINT8 | CAML_BA_C_LAYOUT, 1, buf, size);
   caml_callback (*caml_named_value ("dht_random_bytes"), ba);

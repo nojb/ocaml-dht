@@ -41,9 +41,6 @@ external periodic : (bytes * int * Unix.sockaddr) option -> (event -> id:string 
 
 external dht_search : string -> int -> Unix.socket_domain -> (event -> id:string -> unit) -> unit = "caml_dht_search"
 
-let dht_callback ev info_hash clos =
-  clos ev info_hash
-
 let search ~id ?(port = 0) ?(af = Unix.PF_INET) callback =
   if String.length id <> 20 then invalid_arg "Dht.search";
   dht_search id port af callback
@@ -60,7 +57,6 @@ let dht_random_bytes bytes =
   done
 
 let () =
-  Callback.register "dht_callback" dht_callback;
   (* Callback.register "dht_blacklisted" dht_blacklisted; *)
   Callback.register "dht_hash" dht_hash;
   Callback.register "dht_random_bytes" dht_random_bytes
