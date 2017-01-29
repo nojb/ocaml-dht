@@ -21,15 +21,51 @@
 
 open Printf
 
+let verbose =
+  ref 0
+
+let color n oc s =
+  if Unix.isatty (Unix.descr_of_out_channel oc) then
+    fprintf oc "\x1b[%d;1m%s\x1b[0m" n s
+  else
+    output_string oc s
+
+let red = color 31
+
+let green = color 32
+
+let yellow = color 33
+
+let magenta = color 35
+
+let cyan = color 36
+
+let logf lvl c s fmt =
+  if !verbose >= lvl then
+    eprintf ("[%a] " ^^ fmt ^^ "\n%!") c s
+  else
+    ifprintf stderr fmt
+
+let errorf fmt =
+  logf 0 red "ERROR" fmt
+
+let warnf fmt =
+  logf 1 yellow "WARNING" fmt
+
+let infof fmt =
+  logf 2 green "INFO" fmt
+
 let hex_of_string s =
   let h = Buffer.create (2 * String.length s) in
   for i = 0 to String.length s - 1 do
-    Printf.bprintf h "%02x" (int_of_char s.[i]);
+    bprintf h "%02x" (int_of_char s.[i]);
   done;
   Buffer.contents h
 
+let short_hex_of_string s =
+  String.sub (hex_of_string s) 0 6
+
 let string_of_hex h =
-  eprintf "string_of_hex: %s (len=%d)\n%!" h (String.length h);
   if String.length h mod 2 <> 0 then invalid_arg "string_of_hex";
   let s = Bytes.create (String.length h / 2) in
   let c = Bytes.create 2 in
@@ -44,7 +80,7 @@ let string_of_sockaddr = function
   | Unix.ADDR_UNIX s ->
       s
   | Unix.ADDR_INET (ip, port) ->
-      Printf.sprintf "%s:%d" (Unix.string_of_inet_addr ip) port
+      sprintf "%s:%d" (Unix.string_of_inet_addr ip) port
 
 let id =
   let s = Bytes.create 20 in
@@ -62,6 +98,10 @@ let bootstrap_nodes =
     "router.utorrent.com", 6881;
   ]
 
+let timer () =
+  let t0 = Unix.gettimeofday () in
+  fun () -> Unix.gettimeofday () -. t0
+
 let buf =
   Bytes.create 4096
 
@@ -73,67 +113,80 @@ let fd =
 
 let wait_read sleep =
   let rd, _, ed = Unix.select [fd] [] [fd] sleep in
-  if ed <> [] then failwith "I/O Error";
+  if ed <> [] then failwith "Read error";
   if rd <> [] then begin
     let len, sa = Unix.recvfrom fd buf 0 (Bytes.length buf - 1) [] in
-    Printf.eprintf "Received packet\n%!";
     Bytes.set buf len '\000';
     Some (buf, len, sa)
   end else
     None
 
-let search id cb =
-  ksprintf print_endline "Searching for %s..." (hex_of_string id);
-  let finished = ref false in
-  let cb ev id =
+let search_all l =
+  let n = ref (List.length l) in
+  let t = timer () in
+  let cb ev ih =
     match ev with
     | Dht.EVENT_VALUES addrs ->
-        ksprintf print_endline "Received %d peers for %s"
-          (List.length addrs) (hex_of_string id);
-        List.iter cb addrs
+        let aux sa =
+          logf 0 magenta (sprintf "%.2f" (t ())) "%s: %s"
+            (short_hex_of_string ih) (string_of_sockaddr sa)
+        in
+        List.iter aux addrs
     | Dht.EVENT_SEARCH_DONE ->
-        ksprintf print_endline "Searching for %s done"
-          (hex_of_string id);
-        finished := true
+        decr n
   in
-  Dht.search id ~port:!port cb;
+  let logf fmt = logf 0 red "SEARCH" fmt in
+  List.iter (fun ih ->
+      Dht.search ih ~port:!port cb;
+      logf "START %s" (hex_of_string ih)
+    ) l;
   let sleep = ref 0.0 in
-  while not !finished do
+  while !n > 0 do
+    logf "Waiting... (%.2fs, n=%d)" !sleep !n;
     sleep := Dht.periodic (wait_read !sleep) cb
   done
 
 let ping (name, port) =
-  let he = Unix.gethostbyname name in
-  if Array.length he.Unix.h_addr_list > 0 then begin
-    ksprintf print_endline "Bootstrap: pinging %s..." name;
-    Dht.ping_node (Unix.ADDR_INET (he.Unix.h_addr_list.(0), port))
-  end else
-    ksprintf print_endline "Bootstrap: node %s not found" name
-
-let check_bootstrapped () =
-  let {Dht.good; dubious; _} = Dht.nodes Unix.PF_INET in
-  ksprintf print_endline "Waiting: good: %d dubious: %d" good dubious;
-  good >= 2 && good + dubious >= 10
+  try
+    match Unix.getaddrinfo name (string_of_int port) [] with
+    | [] ->
+        raise Exit
+    | {Unix.ai_addr; _} :: _ ->
+        infof "Resolved %s:%d -> %s" name port (string_of_sockaddr ai_addr);
+        Dht.ping_node ai_addr
+  with _ ->
+    warnf "Server %s could not be contacted" name
 
 let bootstrap () =
-  printf "Bootstrapping... %s\n" (hex_of_string id);
+  let logf fmt = logf 0 yellow "BOOTSTRAP" fmt in
   List.iter ping bootstrap_nodes;
-  let sleep = ref 0.0 in
-  while not (check_bootstrapped ()) do
-    sleep := Dht.periodic (wait_read !sleep) (fun _ _ -> ())
-  done;
-  printf "Bootstrapped!\n%!"
+  let rec loop sleep =
+    let {Dht.good; dubious; _} = Dht.nodes Unix.PF_INET in
+    let check = good >= 2 && good + dubious >= 10 in
+    if not check then begin
+      logf "Waiting... (%.2fs, good=%d, dubious=%d)" sleep good dubious;
+      loop (Dht.periodic (wait_read sleep) (fun _ _ -> ()))
+    end else
+      logf "OK"
+  in
+  loop 0.0
 
-let print_result id sa =
-  ksprintf print_endline "Retrieved %s for %s" (string_of_sockaddr sa) (hex_of_string id)
+let spec =
+  [
+    "-v", Arg.Unit (fun () -> incr verbose), " Increase verbosity level";
+    "-p", Arg.Set_int port, " Port to use to communicate";
+  ]
 
-let main ih =
-  bootstrap ();
-  search ih (print_result ih)
+let usage_msg =
+  sprintf "%s [-v] INFOHASH INFOHASH ..." Sys.executable_name
+
+let tosearch = ref []
 
 let () =
   try
-    main (string_of_hex Sys.argv.(1))
+    Arg.parse (Arg.align spec) (fun s -> tosearch := s :: !tosearch) usage_msg;
+    bootstrap ();
+    search_all (List.map string_of_hex (List.rev !tosearch))
   with e ->
-    eprintf ">> Fatal error: %s\n%!" (Printexc.to_string e);
+    errorf "Fatal: %s" (Printexc.to_string e);
     exit 2
