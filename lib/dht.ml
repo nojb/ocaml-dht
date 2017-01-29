@@ -1,6 +1,6 @@
 (* The MIT License (MIT)
 
-   Copyright (c) 2015 Nicolas Ojeda Bar <n.oje.bar@gmail.com>
+   Copyright (c) 2015-2017 Nicolas Ojeda Bar <n.oje.bar@gmail.com>
 
    Permission is hereby granted, free of charge, to any person obtaining a copy
    of this software and associated documentation files (the "Software"), to deal
@@ -23,33 +23,39 @@ type event =
   | EVENT_VALUES of Unix.sockaddr list
   | EVENT_SEARCH_DONE
 
-external dht_init : Unix.file_descr option -> Unix.file_descr option -> string -> unit = "caml_dht_init"
+type nodes =
+  {
+    good: int;
+    dubious: int;
+    cached: int;
+    incoming: int;
+  }
+
+type callback =
+  event -> string -> unit
+
+external dht_init: Unix.file_descr option -> Unix.file_descr option -> string -> unit = "caml_dht_init"
+external dht_insert_node: string -> Unix.sockaddr -> unit = "caml_dht_insert_node"
+external ping_node: Unix.sockaddr -> unit = "caml_dht_ping_node"
+external periodic: (bytes * int * Unix.sockaddr) option -> callback -> float = "caml_dht_periodic"
+external dht_search: string -> int -> Unix.socket_domain -> callback -> unit = "caml_dht_search"
+external nodes: Unix.socket_domain -> nodes = "caml_dht_nodes"
+external get_nodes: ipv4:int -> ipv6:int -> Unix.sockaddr list = "caml_dht_get_nodes"
 
 let init ?ipv4 ?ipv6 id =
   if String.length id <> 20 then invalid_arg "init";
   dht_init ipv4 ipv6 id
 
-external dht_insert_node : string -> Unix.sockaddr -> unit = "caml_dht_insert_node"
-
-let insert_node ~id sa =
+let insert_node id sa =
   if String.length id <> 20 then invalid_arg "insert_node";
   dht_insert_node id sa
 
-external ping_node : Unix.sockaddr -> unit = "caml_dht_ping_node"
-
-external periodic : (bytes * int * Unix.sockaddr) option -> (event -> string -> unit) -> float = "caml_dht_periodic"
-
-external dht_search : string -> int -> Unix.socket_domain -> (event -> string -> unit) -> unit = "caml_dht_search"
-
-let search id ?(port = 0) ?(af = Unix.PF_INET) callback =
-  if String.length id <> 20 then invalid_arg "Dht.search";
-  dht_search id port af callback
+let search id ?(port = 0) ?(af = Unix.PF_INET) cb =
+  if String.length id <> 20 then invalid_arg "search";
+  dht_search id port af cb
 
 let dht_hash s =
   Digest.string s
-
-let () =
-  Random.self_init ()
 
 let dht_random_bytes bytes =
   for i = 0 to Bigarray.Array1.dim bytes - 1 do
@@ -57,18 +63,9 @@ let dht_random_bytes bytes =
   done
 
 let () =
+  Random.self_init ()
+
+let () =
   (* Callback.register "dht_blacklisted" dht_blacklisted; *)
   Callback.register "dht_hash" dht_hash;
   Callback.register "dht_random_bytes" dht_random_bytes
-
-external get_nodes : ipv4:int -> ipv6:int -> Unix.sockaddr list = "caml_dht_get_nodes"
-
-type nodes =
-  {
-    good : int;
-    dubious : int;
-    cached : int;
-    incoming : int;
-  }
-
-external nodes : Unix.socket_domain -> nodes = "caml_dht_nodes"

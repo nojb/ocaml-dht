@@ -21,6 +21,31 @@
 
 open Printf
 
+let hex_of_string s =
+  let h = Buffer.create (2 * String.length s) in
+  for i = 0 to String.length s - 1 do
+    Printf.bprintf h "%02x" (int_of_char s.[i]);
+  done;
+  Buffer.contents h
+
+let string_of_hex h =
+  eprintf "string_of_hex: %s (len=%d)\n%!" h (String.length h);
+  if String.length h mod 2 <> 0 then invalid_arg "string_of_hex";
+  let s = Bytes.create (String.length h / 2) in
+  let c = Bytes.create 2 in
+  for i = 0 to String.length h / 2 - 1 do
+    Bytes.set c 0 h.[2*i];
+    Bytes.set c 1 h.[2*i+1];
+    Bytes.set s i (Scanf.sscanf (Bytes.unsafe_to_string c) "%x" char_of_int)
+  done;
+  Bytes.unsafe_to_string s
+
+let string_of_sockaddr = function
+  | Unix.ADDR_UNIX s ->
+      s
+  | Unix.ADDR_INET (ip, port) ->
+      Printf.sprintf "%s:%d" (Unix.string_of_inet_addr ip) port
+
 let id =
   let s = Bytes.create 20 in
   for i = 0 to 19 do
@@ -47,32 +72,15 @@ let fd =
   fd
 
 let wait_read sleep =
-  let rd, _, _ = Unix.select [fd] [] [] sleep in
+  let rd, _, ed = Unix.select [fd] [] [fd] sleep in
+  if ed <> [] then failwith "I/O Error";
   if rd <> [] then begin
     let len, sa = Unix.recvfrom fd buf 0 (Bytes.length buf - 1) [] in
+    Printf.eprintf "Received packet\n%!";
     Bytes.set buf len '\000';
     Some (buf, len, sa)
   end else
     None
-
-let hex_of_string s =
-  let h = Buffer.create (2 * String.length s) in
-  for i = 0 to String.length s - 1 do
-    Printf.bprintf h "%02x" (int_of_char s.[i]);
-  done;
-  Buffer.contents h
-
-let string_of_hex h =
-  eprintf "string_of_hex: %S, len=%d\n%!" h (String.length h);
-  if String.length h mod 2 <> 0 then invalid_arg "string_of_hex";
-  let s = Bytes.create (String.length h / 2) in
-  let c = Bytes.create 2 in
-  for i = 0 to String.length h / 2 - 1 do
-    Bytes.set c 0 h.[2*i];
-    Bytes.set c 1 h.[2*i+1];
-    Bytes.set s i (Scanf.sscanf (Bytes.unsafe_to_string c) "%x" char_of_int)
-  done;
-  Bytes.unsafe_to_string s
 
 let search id cb =
   ksprintf print_endline "Searching for %s..." (hex_of_string id);
@@ -89,52 +97,38 @@ let search id cb =
         finished := true
   in
   Dht.search id ~port:!port cb;
-  let rec loop sleep =
-    if not !finished then
-      let pkt = wait_read sleep in
-      loop (Dht.periodic pkt cb)
-  in
-  loop 0.0
-    
+  let sleep = ref 0.0 in
+  while not !finished do
+    sleep := Dht.periodic (wait_read !sleep) cb
+  done
+
+let ping (name, port) =
+  let he = Unix.gethostbyname name in
+  if Array.length he.Unix.h_addr_list > 0 then begin
+    ksprintf print_endline "Bootstrap: pinging %s..." name;
+    Dht.ping_node (Unix.ADDR_INET (he.Unix.h_addr_list.(0), port))
+  end else
+    ksprintf print_endline "Bootstrap: node %s not found" name
+
+let check_bootstrapped () =
+  let {Dht.good; dubious; _} = Dht.nodes Unix.PF_INET in
+  ksprintf print_endline "Waiting: good: %d dubious: %d" good dubious;
+  good >= 2 && good + dubious >= 10
+
 let bootstrap () =
   printf "Bootstrapping... %s\n" (hex_of_string id);
-  let ping (name, port) =
-    let he = Unix.gethostbyname name in
-    if Array.length he.Unix.h_addr_list > 0 then begin
-      ksprintf print_endline "Bootstrap: pinging %s..." name;
-      Dht.ping_node (Unix.ADDR_INET (he.Unix.h_addr_list.(0), port))
-    end else
-      ksprintf print_endline "Bootstrap: node %s not found" name
-  in
   List.iter ping bootstrap_nodes;
-  let check () =
-    let {Dht.good; dubious; _} = Dht.nodes Unix.PF_INET in
-    ksprintf print_endline "Waiting: good: %d dubious: %d" good dubious;
-    if good >= 2 && good + dubious >= 10 then begin
-      print_endline "Bootstrap done!";
-      true
-    end else
-      false
-  in
-  let rec loop () =
-    let _ = wait_read 0.5 in
-    if not (check ()) then
-      loop ()
-  in
-  loop ()
-
-let string_of_sockaddr = function
-  | Unix.ADDR_UNIX s ->
-      s
-  | Unix.ADDR_INET (ip, port) ->
-      Printf.sprintf "%s:%d" (Unix.string_of_inet_addr ip) port
+  let sleep = ref 0.0 in
+  while not (check_bootstrapped ()) do
+    sleep := Dht.periodic (wait_read !sleep) (fun _ _ -> ())
+  done;
+  printf "Bootstrapped!\n%!"
 
 let print_result id sa =
-  ksprintf print_endline "Retrieved %s for %s" (string_of_sockaddr sa) id
+  ksprintf print_endline "Retrieved %s for %s" (string_of_sockaddr sa) (hex_of_string id)
 
 let main ih =
   bootstrap ();
-  search id (print_result id);
   search ih (print_result ih)
 
 let () =
