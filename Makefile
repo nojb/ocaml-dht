@@ -1,11 +1,12 @@
-OCAMLFIND = ocamlfind
+CAMLC = ocamlc
+CAMLOPT = ocamlopt
 LIB_DIR = lib/
 DHT_DIR = dht/
 LIBTEST_DIR = lib_test/
 DOC_DIR = doc/
-STDLIB_DIR = `$(OCAMLFIND) printconf stdlib`
+STDLIB_DIR = `$(CAMLC) -where`
 CFLAGS = -Wall -std=c99
-OCAMLFLAGS = -safe-string -g -bin-annot
+CAMLFLAGS = -safe-string -g -bin-annot
 CC = cc
 
 all: lib test_lib
@@ -17,16 +18,16 @@ $(LIB_DIR)dhtstubs.o: $(LIB_DIR)dhtstubs.c
 	$(CC) $(CFLAGS) -I $(DHT_DIR) -I $(STDLIB_DIR) -I $(LIB_DIR) -o $@ -c $<
 
 $(LIB_DIR)dht.cmo: $(LIB_DIR)dht.mli $(LIB_DIR)dht.ml
-	$(OCAMLFIND) ocamlc $(OCAMLFLAGS) -I $(LIB_DIR) -c $^
+	$(CAMLC) $(CAMLFLAGS) -I $(LIB_DIR) -c $^
 
 $(LIB_DIR)dht.cmx: $(LIB_DIR)dht.mli $(LIB_DIR)dht.ml
-	$(OCAMLFIND) ocamlopt $(OCAMLFLAGS) -I $(LIB_DIR) -c $^
+	$(CAMLOPT) $(CAMLFLAGS) -I $(LIB_DIR) -c $^
 
 $(LIBTEST_DIR)find_ih: $(LIBTEST_DIR)find_ih.ml $(LIB_DIR)dht.cma
-	$(OCAMLFIND) ocamlc $(OCAMLFLAGS) -package lwt.unix -I $(LIB_DIR) -linkpkg -o $@ dht.cma $<
+	$(CAMLC) $(CAMLFLAGS) -package lwt.unix -I $(LIB_DIR) -linkpkg -o $@ dht.cma $<
 
 $(LIBTEST_DIR)find_ih.opt: $(LIBTEST_DIR)find_ih.ml $(LIB_DIR)dht.cmxa
-	$(OCAMLFIND) ocamlopt $(OCAMLFLAGS) -package lwt.unix -I $(LIB_DIR) -linkpkg -o $@ dht.cmxa $<
+	$(CAMLOPT) $(CAMLFLAGS) -package lwt.unix -I $(LIB_DIR) -linkpkg -o $@ dht.cmxa $<
 
 lib: $(LIB_DIR)dhtstubs.o $(DHT_DIR)dht.o $(LIB_DIR)dht.cmo $(LIB_DIR)dht.cmx
 	ocamlmklib -custom -o $(LIB_DIR)dht $^
@@ -42,8 +43,10 @@ test_lib: $(LIBTEST_DIR)find_ih $(LIBTEST_DIR)find_ih.opt
 find_ih: $(LIBTEST_DIR)find_ih
 	LD_LIBRARY_PATH=$(LIB_DIR):$LD_LIBRARY_PATH $^
 
-pull_jech_dht:
-	git subtree pull --prefix dht https://github.com/jech/dht master --squash
+update_upstream:
+	rm -rf dht
+	git clone https://github.com/jech/dht dht
+	rm -rf dht/.git
 
 doc: $(LIB_DIR)dht.mli
 	$(OCAMLFIND) ocamldoc -d $(DOC_DIR) -html -colorize-code -css-style style.css $^
