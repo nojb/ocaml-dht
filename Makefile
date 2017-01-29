@@ -7,7 +7,7 @@ DOC_DIR = doc/
 STDLIB_DIR = `$(CAMLC) -where`
 CFLAGS = -Wall -std=c99
 CAMLFLAGS = -safe-string -g -bin-annot
-CC = cc
+CC = $(shell ocamlc -config | grep bytecomp_c_co | cut -d: -f 2)
 LWT_DIR = $(shell ocamlfind query lwt)
 
 all: lib test_lib
