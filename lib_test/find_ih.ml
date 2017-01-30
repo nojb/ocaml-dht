@@ -21,9 +21,6 @@
 
 open Printf
 
-let verbose =
-  ref 0
-
 let color n oc s =
   if Unix.isatty (Unix.descr_of_out_channel oc) then
     fprintf oc "\x1b[%d;1m%s\x1b[0m" n s
@@ -40,20 +37,17 @@ let magenta = color 35
 
 let cyan = color 36
 
-let logf lvl c s fmt =
-  if !verbose >= lvl then
-    eprintf ("[%a] " ^^ fmt ^^ "\n%!") c s
-  else
-    ifprintf stderr fmt
+let logf c s fmt =
+  eprintf ("[%a] " ^^ fmt ^^ "\n%!") c s
 
 let errorf fmt =
-  logf 0 red "ERROR" fmt
+  logf red "ERROR" fmt
 
 let warnf fmt =
-  logf 1 yellow "WARNING" fmt
+  logf yellow "WARNING" fmt
 
 let infof fmt =
-  logf 2 green "INFO" fmt
+  logf green "INFO" fmt
 
 let hex_of_string s =
   let h = Buffer.create (2 * String.length s) in
@@ -128,14 +122,14 @@ let search_all l =
     match ev with
     | Dht.EVENT_VALUES addrs ->
         let aux sa =
-          logf 0 magenta (sprintf "%.2f" (t ())) "%s: %s"
+          logf magenta (sprintf "%.2f" (t ())) "%s: %s"
             (short_hex_of_string ih) (string_of_sockaddr sa)
         in
         List.iter aux addrs
     | Dht.EVENT_SEARCH_DONE ->
         decr n
   in
-  let logf fmt = logf 0 red "SEARCH" fmt in
+  let logf fmt = logf red "SEARCH" fmt in
   List.iter (fun ih ->
       Dht.search ih ~port:!port cb;
       logf "START %s" (hex_of_string ih)
@@ -147,19 +141,28 @@ let search_all l =
   done
 
 let ping (name, port) =
+  infof "Pinging %s:%d..." name port;
   try
     match Unix.getaddrinfo name (string_of_int port) [] with
     | [] ->
         raise Exit
     | {Unix.ai_addr; _} :: _ ->
-        infof "Resolved %s:%d -> %s" name port (string_of_sockaddr ai_addr);
         Dht.ping_node ai_addr
   with _ ->
     warnf "Server %s could not be contacted" name
 
 let bootstrap () =
-  let logf fmt = logf 0 yellow "BOOTSTRAP" fmt in
-  List.iter ping bootstrap_nodes;
+  let logf fmt = logf yellow "BOOTSTRAP" fmt in
+  let nodes =
+    if Sys.file_exists "dht.dat" then begin
+      let ic = open_in_bin "dht.dat" in
+      let nodes = Marshal.from_channel ic in
+      close_in ic;
+      nodes
+    end else
+      bootstrap_nodes
+  in
+  List.iter ping nodes;
   let rec loop sleep =
     let {Dht.good; dubious; _} = Dht.nodes Unix.PF_INET in
     let check = good >= 2 && good + dubious >= 10 in
@@ -171,9 +174,14 @@ let bootstrap () =
   in
   loop 0.0
 
+let save () =
+  let nodes = Dht.get_nodes ~ipv4:1024 ~ipv6:1024 in
+  let oc = open_out_bin "dht.dat" in
+  Marshal.to_channel oc nodes [];
+  close_out oc
+
 let spec =
   [
-    "-v", Arg.Unit (fun () -> incr verbose), " Increase verbosity level";
     "-p", Arg.Set_int port, " Port to use to communicate";
   ]
 
@@ -186,7 +194,8 @@ let () =
   try
     Arg.parse (Arg.align spec) (fun s -> tosearch := s :: !tosearch) usage_msg;
     bootstrap ();
-    search_all (List.map string_of_hex (List.rev !tosearch))
+    search_all (List.map string_of_hex (List.sort_uniq compare !tosearch));
+    save ()
   with e ->
     errorf "Fatal: %s" (Printexc.to_string e);
     exit 2
