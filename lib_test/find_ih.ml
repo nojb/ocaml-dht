@@ -76,21 +76,44 @@ let string_of_sockaddr = function
   | Unix.ADDR_INET (ip, port) ->
       sprintf "%s:%d" (Unix.string_of_inet_addr ip) port
 
-let id =
+let port =
+  ref 4567
+
+let fresh_id () =
   let s = Bytes.create 20 in
   for i = 0 to 19 do
     Bytes.set s i (char_of_int (Random.int 256))
   done;
   Bytes.unsafe_to_string s
 
-let port =
-  ref 4567
-
 let bootstrap_nodes =
   [
     "dht.transmissionbt.com", 6881;
     "router.utorrent.com", 6881;
   ]
+
+let resolve (name, port) =
+  try
+    match Unix.getaddrinfo name (string_of_int port) [] with
+    | [] ->
+        raise Exit
+    | {Unix.ai_addr; _} :: _ ->
+        ai_addr
+  with _ ->
+    ksprintf failwith "Server %s could not be contacted" name
+
+let id, start_nodes =
+  if Sys.file_exists "dht.dat" then begin
+    let ic = open_in_bin "dht.dat" in
+    let id, nodes = Marshal.from_channel ic in
+    close_in ic;
+    infof "Restored %d good nodes" (List.length nodes);
+    id, nodes
+  end else
+    fresh_id (), List.map resolve bootstrap_nodes
+
+let () =
+  infof "id %a" magenta (hex_of_string id)
 
 let timer () =
   let t0 = Unix.gettimeofday () in
@@ -140,29 +163,13 @@ let search_all l =
     sleep := Dht.periodic (wait_read !sleep) cb
   done
 
-let ping (name, port) =
-  infof "Pinging %s:%d..." name port;
-  try
-    match Unix.getaddrinfo name (string_of_int port) [] with
-    | [] ->
-        raise Exit
-    | {Unix.ai_addr; _} :: _ ->
-        Dht.ping_node ai_addr
-  with _ ->
-    warnf "Server %s could not be contacted" name
+let ping sa =
+  infof "Pinging %s..." (string_of_sockaddr sa);
+  Dht.ping_node sa
 
 let bootstrap () =
   let logf fmt = logf yellow "BOOTSTRAP" fmt in
-  let nodes =
-    if Sys.file_exists "dht.dat" then begin
-      let ic = open_in_bin "dht.dat" in
-      let nodes = Marshal.from_channel ic in
-      close_in ic;
-      nodes
-    end else
-      bootstrap_nodes
-  in
-  List.iter ping nodes;
+  List.iter ping start_nodes;
   let rec loop sleep =
     let {Dht.good; dubious; _} = Dht.nodes Unix.PF_INET in
     let check = good >= 2 && good + dubious >= 10 in
@@ -177,8 +184,9 @@ let bootstrap () =
 let save () =
   let nodes = Dht.get_nodes ~ipv4:1024 ~ipv6:1024 in
   let oc = open_out_bin "dht.dat" in
-  Marshal.to_channel oc nodes [];
-  close_out oc
+  Marshal.to_channel oc (id, nodes) [];
+  close_out oc;
+  infof "Saved %d good nodes" (List.length nodes)
 
 let spec =
   [

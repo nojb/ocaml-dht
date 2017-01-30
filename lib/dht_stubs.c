@@ -204,7 +204,7 @@ CAMLprim value caml_dht_search (value id, value port, value dom, value closure)
   res = dht_search ((unsigned char *) String_val (id), Int_val (port), af, &caml_dht_callback, root);
   caml_remove_generational_global_root (root);
   free (root);
-  
+
   if (res < 0) {
     caml_failwith ("dht_search");
   }
@@ -216,31 +216,33 @@ CAMLprim value caml_dht_get_nodes (value num, value num6)
 {
   CAMLparam2 (num, num6);
   CAMLlocal3 (lst, sa, cons);
-  union sock_addr_union adr [num];
-  union sock_addr_union adr6 [num6];
-  int res, n, n6;
+  int n = Int_val (num);
+  int n6 = Int_val (num6);
+  struct sockaddr_in in[n];
+  struct sockaddr_in6 in6[n6];
+  union sock_addr_union adr;
+  union sock_addr_union adr6;
+  int res;
 
   lst = Val_emptylist;
-  n = Int_val (num);
-  n6 = Int_val (num6);
 
-  res = dht_get_nodes (&adr[0].s_inet, &n, &adr6[0].s_inet6, &n6);
+  res = dht_get_nodes (in, &n, in6, &n6);
 
-  if (res < 0) {
-    caml_failwith ("dht_get_nodes");
-  }
+  if (res < 0) caml_failwith ("dht_get_nodes");
 
   for (int i = 0; i < n; i ++) {
-    sa = alloc_sockaddr (&adr[i], sizeof (adr[i].s_inet), 0);
-    cons = caml_alloc (2, 0);
+    memcpy (&adr.s_inet, &in[i], sizeof (struct sockaddr_in));
+    sa = alloc_sockaddr (&adr, sizeof (struct sockaddr_in), 0);
+    cons = caml_alloc_tuple (2);
     Store_field (cons, 0, sa);
     Store_field (cons, 1, lst);
     lst = cons;
   }
 
   for (int i = 0; i < n6; i ++) {
-    sa = alloc_sockaddr (&adr6[i], sizeof (adr6[i].s_inet6), 0);
-    cons = caml_alloc (2, 0);
+    memcpy (&adr.s_inet6, &in6[i], sizeof (struct sockaddr_in6));
+    sa = alloc_sockaddr (&adr6, sizeof (struct sockaddr_in6), 0);
+    cons = caml_alloc_tuple (2);
     Store_field (cons, 0, sa);
     Store_field (cons, 1, lst);
     lst = cons;
