@@ -1,0 +1,4 @@
+(foreign_library
+ (archive_name dht)
+ (language c)
+ (names dht))

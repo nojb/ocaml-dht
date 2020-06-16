@@ -1,0 +1,8 @@
+(library
+ (public_name dht)
+ (libraries unix)
+ (foreign_archives ../dht/dht)
+ (foreign_stubs
+  (language c)
+  (include_dirs ../dht)
+  (names dht_stubs)))

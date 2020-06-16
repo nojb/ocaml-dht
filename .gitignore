@@ -1,12 +1,3 @@
-*.a
-*.o
-*.cmo
-*.cmx
-*.cma
-*.cmxa
-*.cmi
-*.cmt*
-*.so
-find_ih
-find_ih.opt
-doc/*.html
+_build
+*.install
+.merlin

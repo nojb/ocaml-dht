@@ -1,4 +1,0 @@
-S lib
-S lib_test
-B lib
-B lib_test
